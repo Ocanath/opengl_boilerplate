@@ -145,6 +145,7 @@ void Camera::loadFromFile(const std::string& path)
     body_->setLinearVelocity({ 0.f, 0.f, 0.f });
     body_->setAngularVelocity({ 0.f, 0.f, 0.f });
     body_->activate(true);
+	setGravity(false);
 
     yaw_   = yaw;
     pitch_ = pitch;
