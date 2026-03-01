@@ -102,11 +102,12 @@ void MoveAbility::onDeselect()
 
 void MoveAbility::onScroll(float delta)
 {
-    grabDist = std::clamp(grabDist + delta * 2.f, kMinDist, kMaxDist);
+    grabDist = std::clamp(grabDist + delta * 8.f, kMinDist, kMaxDist);
 }
 
 void MoveAbility::drawHUD(ImDrawList* dl, float cx, float cy)
 {
+	return;
     if (lmbHeld_ && !grabbed_.empty()) {
         // Grabbing — orange ring + count
         ImU32 col = IM_COL32(255, 160, 0, 220);

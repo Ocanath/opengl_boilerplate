@@ -412,7 +412,8 @@ void Scene::update(float dt, GLFWwindow* window)
             camPos_, camFront_, lastView_, lastProj_,
             lastViewW_, lastViewH_, lmbHeld, lights_
         };
-        bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
+        // bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
+		bool qHeld = true;
         for (int i = 0; i < (int)abilities_.size(); ++i)
 		{
 			abilities_[i]->update(dt, ctx, i == activeAbility_ ? qHeld : false);

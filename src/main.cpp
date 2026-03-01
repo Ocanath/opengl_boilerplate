@@ -269,7 +269,8 @@ int main()
 
         ImGui::Separator();
         ImGui::Text("Abilities  [1/2/3/4]");
-        for (int i = 0; i < scene.getAbilityCount(); ++i) {
+        for (int i = 0; i < scene.getAbilityCount(); ++i) 
+		{
             bool active = (i == scene.getActiveAbility());
             if (active) ImGui::PushStyleColor(ImGuiCol_Button, {0.3f, 0.6f, 1.f, 1.f});
             if (ImGui::Button(scene.getAbilityName(i))) scene.selectAbility(i);

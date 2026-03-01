@@ -16,7 +16,8 @@ void PushAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
     std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
 
     auto& arr = ctx.world->getCollisionObjectArray();
-    for (int i = 0; i < arr.size(); ++i) {
+    for (int i = 0; i < arr.size(); ++i) 
+	{
         btCollisionObject* obj = arr[i];
         if (obj->isStaticOrKinematicObject()) continue;
 

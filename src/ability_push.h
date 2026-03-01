@@ -14,7 +14,7 @@ public:
     void onDeselect() override;
     void drawHUD(ImDrawList* dl, float cx, float cy) override;
 
-    float pushStrength = 50.f;  // impulse magnitude (N·s)
+    float pushStrength = 100.f;  // impulse magnitude (N·s)
 
 private:
     std::vector<btRigidBody*> selected_;
