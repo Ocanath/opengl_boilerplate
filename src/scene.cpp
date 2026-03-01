@@ -20,7 +20,7 @@ Scene::Scene()
     solver_        = new btSequentialImpulseConstraintSolver();
     dynamicsWorld_ = new btDiscreteDynamicsWorld(
         dispatcher_, broadphase_, solver_, collConfig_);
-    dynamicsWorld_->setGravity({ 0.f, -9.81f, 0.f });
+    dynamicsWorld_->setGravity({ 0.f, 0.f, -9.8f });
 
     try {
         cubeModel_ = std::make_unique<Model>("assets/cube.obj");
@@ -83,18 +83,18 @@ void Scene::buildChamber()
 
     struct WallDef { glm::vec3 pos, half, scale; };
     static const WallDef walls[] = {
-        // Floor
-        {{ 0.f,   -0.5f,  0.f}, {50.f, 0.5f, 50.f}, {100.f,   1.f, 100.f}},
-        // Ceiling
-        {{ 0.f,  100.5f,  0.f}, {50.f, 0.5f, 50.f}, {100.f,   1.f, 100.f}},
+        // Floor   (Z = -0.5)
+        {{ 0.f,   0.f,  -0.5f}, {50.f, 50.f, 0.5f}, {100.f, 100.f,   1.f}},
+        // Ceiling (Z = 100.5)
+        {{ 0.f,   0.f, 100.5f}, {50.f, 50.f, 0.5f}, {100.f, 100.f,   1.f}},
         // -X wall
-        {{-50.5f,  50.f,  0.f}, {0.5f, 50.f, 50.f}, {  1.f, 100.f, 100.f}},
+        {{-50.5f, 0.f,  50.f},  {0.5f, 50.f, 50.f}, {  1.f, 100.f, 100.f}},
         // +X wall
-        {{ 50.5f,  50.f,  0.f}, {0.5f, 50.f, 50.f}, {  1.f, 100.f, 100.f}},
-        // -Z wall
-        {{ 0.f,    50.f, -50.5f}, {50.f, 50.f, 0.5f}, {100.f, 100.f,   1.f}},
-        // +Z wall
-        {{ 0.f,    50.f,  50.5f}, {50.f, 50.f, 0.5f}, {100.f, 100.f,   1.f}},
+        {{ 50.5f, 0.f,  50.f},  {0.5f, 50.f, 50.f}, {  1.f, 100.f, 100.f}},
+        // -Y wall
+        {{ 0.f, -50.5f, 50.f},  {50.f, 0.5f, 50.f}, {100.f,   1.f, 100.f}},
+        // +Y wall
+        {{ 0.f,  50.5f, 50.f},  {50.f, 0.5f, 50.f}, {100.f,   1.f, 100.f}},
     };
 
     for (const auto& w : walls) {
@@ -117,12 +117,12 @@ void Scene::buildPillars()
 			for(float zpos = 4.f; zpos < 20.f; zpos += 6.f)
 			{
 				// float     a   = i * 2.f * (float)M_PI / 5.f;
-				glm::vec3 pos = { xpos, zpos, ypos };
+				glm::vec3 pos = { xpos, ypos, zpos };
 				floatingPillars_.emplace_back(
 					dynamicsWorld_, cubeModel_.get(),
-					glm::vec3{0.1f, 3.f/2.f, 0.1f},
+					glm::vec3{0.1f, 0.1f, 3.f/2.f},
 					pos,
-					glm::vec3{0.2f, 3.f, 0.2f},
+					glm::vec3{0.2f, 0.2f, 3.f},
 					glm::vec3{0.039f, 0.039f, 0.039f},
 					1.f);  // dynamic mass
 				
@@ -130,7 +130,7 @@ void Scene::buildPillars()
 				btRigidBody* b = floatingPillars_.back().getBody();
 				b->setGravity({ 0.f, 0.f, 0.f });
 				b->setDamping(0.0f, 0.0f);
-				b->setAngularVelocity({0.0,0.1,0.0});
+				b->setAngularVelocity({0.0, 0.0, 0.1});
 
 			}
 		}

@@ -12,7 +12,7 @@ class Camera
 {
 public:
     Camera(btDiscreteDynamicsWorld* world,
-           glm::vec3 startPos = {0.f, 5.f, 0.f});
+           glm::vec3 startPos = {0.f, 0.f, 5.f});
     ~Camera();
 
     // CPU-only: compute desired velocity from key state (no mutex needed)
@@ -37,12 +37,12 @@ private:
 
     glm::vec3 velocity_        = {0.f, 0.f, 0.f};
     bool      vertInputActive_ = false;
-    float     yaw_             = -90.f;
+    float     yaw_             = 0.f;
     float     pitch_           = 0.f;
     float     moveSpeed_       = 6.f;
     float     mouseSens_       = 0.12f;
 
-    glm::vec3 front_ = {0.f, 0.f, -1.f};
-    glm::vec3 right_ = {1.f, 0.f,  0.f};
+    glm::vec3 front_ = {1.f, 0.f, 0.f};
+    glm::vec3 right_ = {0.f, -1.f, 0.f};
     void updateVectors();
 };

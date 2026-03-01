@@ -143,7 +143,7 @@ int main()
     g_scene = &scene;
 
     // Add some default lights
-    scene.addLight({ {  5.f, 18.f,  5.f}, {1.f, 0.95f, 0.85f}, 15.f });
+    scene.addLight({ {  5.f,  5.f, 18.f}, {1.f, 0.95f, 0.85f}, 15.f });
     // scene.addLight({ { 5.f, 6.f, 5.f}, {0.7f, 0.8f,  1.f},  15.f });
     // scene.addLight({ {  0.f, 3.f,  0.f}, {1.f, 1.f,    1.f},  10.f });
 
@@ -212,7 +212,7 @@ int main()
 
         if ((int)lights.size() < MAX_LIGHTS) {
             if (ImGui::Button("Add Light")) {
-                scene.addLight({ {0.f, 20.f, 0.f}, {1.f, 1.f, 1.f}, 1.f });
+                scene.addLight({ {0.f, 0.f, 20.f}, {1.f, 1.f, 1.f}, 1.f });
             }
         }
 
