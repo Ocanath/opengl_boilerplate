@@ -58,6 +58,21 @@ void PushAbility::onFire(const AbilityContext& ctx)
     selected_.clear();
 }
 
+void PushAbility::onFireSecondary(const AbilityContext& ctx)
+{
+    if (!qHeld_ || selected_.empty()) return;
+
+    std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
+    btVector3 impulse(-ctx.camFront.x * pushStrength,
+                      -ctx.camFront.y * pushStrength,
+                      -ctx.camFront.z * pushStrength);
+    for (btRigidBody* body : selected_) {
+        body->activate(true);
+        body->applyCentralImpulse(impulse);
+    }
+    selected_.clear();
+}
+
 void PushAbility::onDeselect()
 {
     selected_.clear();
@@ -66,6 +81,7 @@ void PushAbility::onDeselect()
 
 void PushAbility::drawHUD(ImDrawList* dl, float cx, float cy)
 {
+	return;
     if (!qHeld_) return;
 
     ImU32 colour = selected_.empty() ? IM_COL32(180, 180, 180, 150)

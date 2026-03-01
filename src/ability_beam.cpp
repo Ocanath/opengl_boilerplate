@@ -82,7 +82,7 @@ void BeamAbility::onFire(const AbilityContext& ctx)
             spawnPos,
             glm::vec3{0.2f, 0.2f, 3.0f},
             glm::vec3{1.f, 1.f, 0.5f},
-            10.f,
+            1.f,	//mass
             rot,
             false);
 

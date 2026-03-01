@@ -254,16 +254,16 @@ void Scene::buildPillars()
     {
         for (float ypos = -20; ypos < 20; ypos += 3)
         {
-            for (float zpos = 4.f; zpos < 20.f; zpos += 6.f)
+            for (float zpos = 40.f; zpos < 40+20.f; zpos += 6.f)
             {
                 glm::vec3 pos = { xpos, ypos, zpos };
                 floatingPillars_.emplace_back(
                     dynamicsWorld_, cubeModel_.get(),
-                    glm::vec3{0.1f, 0.1f, 3.f/2.f},
+                    glm::vec3{0.2f, 0.2f, 3.f/2.f},
                     pos,
-                    glm::vec3{0.2f, 0.2f, 3.f},
+                    glm::vec3{0.4f, 0.4f, 3.f},
                     glm::vec3{0.039f, 0.039f, 0.039f},
-                    1.f);  // dynamic mass
+                    4.f);  // dynamic mass
 
                 btRigidBody* b = floatingPillars_.back().getBody();
                 b->setGravity({ 0.f, 0.f, 0.f });
