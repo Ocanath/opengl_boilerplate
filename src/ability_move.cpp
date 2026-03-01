@@ -22,18 +22,21 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 
         glm::vec3 targetPos = ctx.camPos + ctx.camFront * grabDist;
 
-        for (auto& gb : grabbed_) {
+        for (auto& gb : grabbed_) 
+		{
             btVector3 btBodyPos = gb.body->getWorldTransform().getOrigin();
             glm::vec3 bodyPos(btBodyPos.x(), btBodyPos.y(), btBodyPos.z());
 
             glm::vec3 error = targetPos - bodyPos;
 
             gb.integral  += error * dt;
-            glm::vec3 derivative = (dt > 0.f) ? (error - gb.prevError) / dt
-                                               : glm::vec3(0.f);
+            // glm::vec3 derivative = (dt > 0.f) ? (error - gb.prevError) / dt
+            //                                    : glm::vec3(0.f);
             gb.prevError  = error;
 
-            glm::vec3 force = Kp * error + Ki * gb.integral + Kd * derivative;
+			btVector3 velocity = gb.body->getLinearVelocity();
+			glm::vec3 glm_velocity = {velocity[0], velocity[1], velocity[2]};
+            glm::vec3 force = Kp * error + Ki * gb.integral - Kd * glm_velocity;
 
             float mag = std::sqrt(force.x*force.x + force.y*force.y + force.z*force.z);
             if (mag > maxForce && mag > 0.f)
