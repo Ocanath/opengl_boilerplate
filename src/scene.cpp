@@ -164,7 +164,7 @@ void Scene::addLight(const Light& light)
             false); // dynamic
         btRigidBody* b = lightBoxes_.back().getBody();
         b->setGravity({ 0.f, 0.f, 0.f });
-        b->setDamping(0.1f, 0.1f);
+        b->setDamping(0.01f, 0.01f);
     }
 }
 
