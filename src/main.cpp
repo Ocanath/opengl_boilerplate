@@ -5,6 +5,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include "scene.h"
+#include <btBulletDynamicsCommon.h>
 #include "light.h"
 
 #include <cstdio>
@@ -171,6 +172,11 @@ int main()
 		float yl = sin(fi*2*M_PI/(float)n_circlelights)*15;
 		scene.addLight({ {xl, yl, 70.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
 	}
+	scene.addPile({0,0,0});
+	scene.addPile({10,10,0});
+	scene.addPile({10,-10,0});
+	scene.addPile({-10,10,0});
+	scene.addPile({-10,-10,0});
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");

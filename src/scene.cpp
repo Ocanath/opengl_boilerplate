@@ -505,3 +505,31 @@ void Scene::draw(int width, int height)
                     box.draw(*unlitShader_);
     }
 }
+
+
+
+void Scene::addPile(glm::vec3 loc)
+{
+	for(float z = 1.f; z <= 3.f; z+=1.f)
+	{
+		for(float y = -1.f; y <= 1.f; y+=1.f)
+		{
+			for(float x = -1.f; x <= 1.f; x+=1.f)
+			{
+				floatingPillars_.emplace_back(                    
+					dynamicsWorld_, cubeModel_.get(),
+                    glm::vec3{0.5f, 0.5f, 0.5},
+                    glm::vec3{x,y,z} + loc,
+                    glm::vec3{1.f, 1.f, 1.f},
+                    glm::vec3{0.039f, 0.039f, 0.039f},
+                    1.f);  // dynamic mass
+				
+				btRigidBody* b = floatingPillars_.back().getBody();
+                b->setGravity({ 0.f, 0.f, -9.8f });
+                b->setDamping(0.0f, 0.0f);
+                // b->setActivationState(DISABLE_DEACTIVATION);
+			}
+		}
+	}
+
+}

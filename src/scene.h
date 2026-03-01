@@ -29,7 +29,8 @@ public:
 
     void addModel(const std::string& path);
     void addLight(const Light& light);
-
+	void addPile(glm::vec3 loc);
+    
     void update(float dt, struct GLFWwindow* window);
     void draw(int viewportWidth, int viewportHeight);
 
@@ -45,6 +46,8 @@ public:
     void saveCameraToFile(const std::string& path);
     void loadCameraFromFile(const std::string& path);
 
+	std::vector<CollisionBox> floatingPillars_; // 5 static pillars
+	
     // Ability system
     void selectAbility(int index);   // 0-based
     void firePrimary();              // on LMB press
@@ -54,6 +57,8 @@ public:
     int         getAbilityCount()  const { return (int)abilities_.size(); }
     const char* getAbilityName(int i) const;
     float&      beamFireVelocity();      // ref to BeamAbility::fireVelocity for UI
+    std::unique_ptr<Model>  cubeModel_;   // shared unit cube for all box meshes
+	btDiscreteDynamicsWorld*             dynamicsWorld_ = nullptr;
 
 private:
     // Bullet objects (owned)
@@ -61,7 +66,7 @@ private:
     btDefaultCollisionConfiguration*     collConfig_    = nullptr;
     btCollisionDispatcher*               dispatcher_    = nullptr;
     btSequentialImpulseConstraintSolver* solver_        = nullptr;
-    btDiscreteDynamicsWorld*             dynamicsWorld_ = nullptr;
+    
 
     // Physics thread
     std::mutex        physicsMutex_;
@@ -70,7 +75,6 @@ private:
     void physicsLoop();
 
     // Scene objects
-    std::unique_ptr<Model>  cubeModel_;   // shared unit cube for all box meshes
     std::vector<Model>      models_;
     std::vector<Light>      lights_;
     std::unique_ptr<Camera> camera_;
@@ -78,8 +82,7 @@ private:
     // Collision boxes
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
-    std::vector<CollisionBox> floatingPillars_; // 5 static pillars
-
+	
     // Ability system
     std::vector<std::unique_ptr<AbilityBase>> abilities_;
     int activeAbility_ = 0;
