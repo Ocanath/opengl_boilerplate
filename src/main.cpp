@@ -107,7 +107,8 @@ static void APIENTRY glDebugCallback(GLenum /*source*/, GLenum type,
 int main()
 {
     // GLFW init
-    if (!glfwInit()) {
+    if (!glfwInit()) 
+	{
         fprintf(stderr, "Failed to initialise GLFW\n");
         return EXIT_FAILURE;
     }
@@ -129,7 +130,8 @@ int main()
     glfwSwapInterval(0); // uncapped framerate
 
     // GLAD
-    if (!gladLoadGL(glfwGetProcAddress)) {
+    if (!gladLoadGL(glfwGetProcAddress)) 
+	{
         fprintf(stderr, "Failed to initialise GLAD\n");
         return EXIT_FAILURE;
     }
