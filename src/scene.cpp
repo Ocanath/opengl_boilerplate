@@ -109,22 +109,31 @@ void Scene::buildPillars()
 {
     if (!cubeModel_) return;
 
-    for (int i = 0; i < 5; ++i) 
+    // for (int i = 0; i < 5; ++i) 
+	for(float xpos = -20; xpos < 20; xpos += 3)
 	{
-        float     a   = i * 2.f * (float)M_PI / 5.f;
-        glm::vec3 pos = { 20.f * std::cos(a), 10.f, 20.f * std::sin(a) };
-        floatingPillars_.emplace_back(
-            dynamicsWorld_, cubeModel_.get(),
-            glm::vec3{1.f, 2.5f, 1.f},
-            pos,
-            glm::vec3{2.f, 5.f, 2.f},
-            glm::vec3{0.039f, 0.039f, 0.039f},
-            1.f);  // dynamic mass
+		for(float ypos = -20; ypos < 20; ypos += 3)
+		{
+			for(float zpos = 4.f; zpos < 20.f; zpos += 6.f)
+			{
+				// float     a   = i * 2.f * (float)M_PI / 5.f;
+				glm::vec3 pos = { xpos, zpos, ypos };
+				floatingPillars_.emplace_back(
+					dynamicsWorld_, cubeModel_.get(),
+					glm::vec3{0.1f, 3.f/2.f, 0.1f},
+					pos,
+					glm::vec3{0.2f, 3.f, 0.2f},
+					glm::vec3{0.039f, 0.039f, 0.039f},
+					1.f);  // dynamic mass
+				
+				// Float in place: disable gravity per-body, add heavy damping
+				btRigidBody* b = floatingPillars_.back().getBody();
+				b->setGravity({ 0.f, 0.f, 0.f });
+				b->setDamping(0.0f, 0.0f);
+				b->setAngularVelocity({0.0,0.1,0.0});
 
-        // Float in place: disable gravity per-body, add heavy damping
-        btRigidBody* b = floatingPillars_.back().getBody();
-        b->setGravity({ 0.f, 0.f, 0.f });
-        b->setDamping(0.1f, 0.1f);
+			}
+		}
     }
 }
 
