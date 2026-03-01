@@ -54,42 +54,52 @@ void Camera::updateVectors()
 
 void Camera::processKeyboard(GLFWwindow* window)
 {
-    velocity_        = {0.f, 0.f, 0.f};
-    vertInputActive_ = false;
+    velocity_ = {0.f, 0.f, 0.f};
 
     if (!mouseCaptured) return;
 
-    glm::vec3 flatFront = glm::normalize(glm::vec3(front_.x, front_.y, 0.f));
+    bool shift = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)  == GLFW_PRESS ||
+                  glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) velocity_ += flatFront;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) velocity_ -= flatFront;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) velocity_ -= right_;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) velocity_ += right_;
+    if (freecam) {
+        // Full 3D movement: W/S along camera direction, A/D orthogonal to front and Z axis
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) velocity_ += front_;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) velocity_ -= front_;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) velocity_ -= right_;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) velocity_ += right_;
+        if (glm::length(velocity_) > 0.001f)
+            velocity_ = glm::normalize(velocity_);
+    } else {
+        glm::vec3 flatFront(front_.x, front_.y, 0.f);
+        if (glm::length(flatFront) > 0.001f) flatFront = glm::normalize(flatFront);
 
-    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
-        velocity_.z      += 1.f;
-        vertInputActive_  = true;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) velocity_ += flatFront;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) velocity_ -= flatFront;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) velocity_ -= right_;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) velocity_ += right_;
+
+        glm::vec3 horiz = { velocity_.x, velocity_.y, 0.f };
+        if (glm::length(horiz) > 0.001f) horiz = glm::normalize(horiz);
+        velocity_.x = horiz.x;
+        velocity_.y = horiz.y;
     }
-    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
-        velocity_.z      -= 1.f;
-        vertInputActive_  = true;
-    }
 
-    // Normalize horizontal XY component independently
-    glm::vec3 horiz = { velocity_.x, velocity_.y, 0.f };
-    if (glm::length(horiz) > 0.001f)
-        horiz = glm::normalize(horiz);
-    velocity_.x = horiz.x;
-    velocity_.y = horiz.y;
+    // Explicit vertical keys apply in both modes
+    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) velocity_.z += 1.f;
+    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) velocity_.z -= 1.f;
+
+    vertInputActive_ = (glm::abs(velocity_.z) > 0.001f);
+    sprint_          = shift && (glm::length(velocity_) > 0.001f);
 }
 
 void Camera::applyVelocity()
 {
     btVector3 cur = body_->getLinearVelocity();
-    float vx = velocity_.x * moveSpeed_;
-    float vy = velocity_.y * moveSpeed_;
-    // Preserve physics-driven Z (gravity) when active; snap to 0 when gravity is off and no key held
-    float vz = vertInputActive_ ? velocity_.z * moveSpeed_ : (gravityEnabled ? cur.z() : 0.f);
+    float sm = sprint_ ? sprintMult_ : 1.f;
+    float vx = velocity_.x * moveSpeed * sm;
+    float vy = velocity_.y * moveSpeed * sm;
+    float vz = vertInputActive_ ? velocity_.z * zMoveSpeed * sm
+                                : (gravityEnabled ? cur.z() : 0.f);
     body_->setLinearVelocity({ vx, vy, vz });
     body_->activate(true);
 }

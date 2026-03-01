@@ -190,13 +190,21 @@ int main()
 
         ImGui::Text("FPS: %.1f  (%.2f ms)", 1.f / dt, dt * 1000.f);
         glm::vec3 pos = scene.getCameraPosition();
+        Camera& cam = scene.getCamera();
         ImGui::Text("Camera: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         ImGui::Text("Mouse: %s  [Esc toggles]",
-                    scene.getCamera().mouseCaptured ? "captured" : "free");
+                    cam.mouseCaptured ? "captured" : "free");
 
-        bool gravOn = scene.getCamera().gravityEnabled;
+        bool gravOn = cam.gravityEnabled;
         if (ImGui::Button(gravOn ? "Disable Gravity" : "Enable Gravity"))
             scene.setCameraGravity(!gravOn);
+
+        ImGui::SameLine();
+        if (ImGui::Button(cam.freecam ? "Freecam: ON" : "Freecam: OFF"))
+            cam.freecam = !cam.freecam;
+
+        ImGui::SliderFloat("XY Speed", &cam.moveSpeed,  0.5f, 50.f);
+        ImGui::SliderFloat("Z Speed",  &cam.zMoveSpeed, 0.5f, 50.f);
 
         if (ImGui::Button("Save Camera"))
             scene.saveCameraToFile("camera.position");

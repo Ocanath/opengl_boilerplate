@@ -28,8 +28,11 @@ public:
     glm::vec3 getPosition()   const;
     glm::vec3 getFront()      const;
 
-    bool mouseCaptured  = true;
-    bool gravityEnabled = true;
+    bool  mouseCaptured  = true;
+    bool  gravityEnabled = true;
+    bool  freecam        = false;
+    float moveSpeed      = 6.f;   // XY speed
+    float zMoveSpeed     = 6.f;   // Z speed
 
     void setGravity(bool enabled);
 
@@ -44,9 +47,10 @@ private:
 
     glm::vec3 velocity_        = {0.f, 0.f, 0.f};
     bool      vertInputActive_ = false;
+    bool      sprint_          = false;
+    float     sprintMult_      = 3.f;
     float     yaw_             = 0.f;
     float     pitch_           = 0.f;
-    float     moveSpeed_       = 6.f;
     float     mouseSens_       = 0.12f;
 
     glm::vec3 front_ = {1.f, 0.f, 0.f};
