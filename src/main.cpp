@@ -12,6 +12,10 @@
 #include <cstdlib>
 #include <stdexcept>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // ─── Window dimensions ───────────────────────────────────────────────────────
 static constexpr int WIN_W = 1280;
 static constexpr int WIN_H = 720;
