@@ -36,6 +36,9 @@ public:
     // Called on LMB press (while mouse is captured).
     virtual void onFire(const AbilityContext& ctx) = 0;
 
+    // Called on RMB press (while mouse is captured). Default: no-op.
+    virtual void onFireSecondary(const AbilityContext& ctx) {}
+
     // Called when the player switches away from this ability.
     virtual void onDeselect() = 0;
 

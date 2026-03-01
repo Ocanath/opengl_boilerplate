@@ -343,6 +343,17 @@ void Scene::firePrimary()
     abilities_[activeAbility_]->onFire(ctx);
 }
 
+void Scene::fireSecondary()
+{
+    if (!camera_->mouseCaptured || abilities_.empty()) return;
+    AbilityContext ctx {
+        dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
+        camPos_, camFront_, lastView_, lastProj_,
+        lastViewW_, lastViewH_, lights_
+    };
+    abilities_[activeAbility_]->onFireSecondary(ctx);
+}
+
 const char* Scene::getAbilityName(int i) const
 {
     if (i < 0 || i >= (int)abilities_.size()) return "";
@@ -370,7 +381,8 @@ void Scene::update(float dt, GLFWwindow* window)
         camFront_ = camera_->getFront();
     }
 
-    // Update active ability
+    // Update all abilities; only active one gets qHeld=true.
+    // Inactive abilities still tick so that timed effects (drag, gravity) complete.
     if (!abilities_.empty()) {
         AbilityContext ctx {
             dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
@@ -379,7 +391,8 @@ void Scene::update(float dt, GLFWwindow* window)
         };
         bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
                   && camera_->mouseCaptured;
-        abilities_[activeAbility_]->update(dt, ctx, qHeld);
+        for (int i = 0; i < (int)abilities_.size(); ++i)
+            abilities_[i]->update(dt, ctx, i == activeAbility_ ? qHeld : false);
     }
 }
 
@@ -475,12 +488,12 @@ void Scene::draw(int width, int height)
     for (auto& lb : lightBoxes_)
         lb.draw(*unlitShader_);
 
-    // Ability preview geometry + owned fired boxes
+    // Ability preview (active only) + owned boxes from every ability
     if (!abilities_.empty()) {
-        AbilityBase* ab = abilities_[activeAbility_].get();
-        ab->drawPreview(*unlitShader_, view, proj);
-        if (auto* boxes = ab->getBoxes())
-            for (const auto& box : *boxes)
-                box.draw(*unlitShader_);
+        abilities_[activeAbility_]->drawPreview(*unlitShader_, view, proj);
+        for (auto& ab : abilities_)
+            if (auto* boxes = ab->getBoxes())
+                for (const auto& box : *boxes)
+                    box.draw(*unlitShader_);
     }
 }

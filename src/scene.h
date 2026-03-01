@@ -48,6 +48,7 @@ public:
     // Ability system
     void selectAbility(int index);   // 0-based
     void firePrimary();              // on LMB press
+    void fireSecondary();            // on RMB press
     void drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy);
     int         getActiveAbility() const { return activeAbility_; }
     int         getAbilityCount()  const { return (int)abilities_.size(); }

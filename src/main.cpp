@@ -52,10 +52,11 @@ static void cursorPosCallback(GLFWwindow*, double xpos, double ypos)
 
 static void mouseButtonCallback(GLFWwindow*, int btn, int action, int /*mods*/)
 {
-    if (btn == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        if (g_scene && !ImGui::GetIO().WantCaptureMouse)
-            g_scene->firePrimary();
-    }
+    if (action != GLFW_PRESS || !g_scene || ImGui::GetIO().WantCaptureMouse) return;
+    if (btn == GLFW_MOUSE_BUTTON_LEFT)
+        g_scene->firePrimary();
+    else if (btn == GLFW_MOUSE_BUTTON_RIGHT)
+        g_scene->fireSecondary();
 }
 
 static void keyCallback(GLFWwindow* window, int key, int /*scancode*/,
@@ -197,12 +198,13 @@ int main()
         glm::vec3 pos = scene.getCameraPosition();
         Camera& cam = scene.getCamera();
         ImGui::Text("Camera: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
-        ImGui::Text("Mouse: %s  [Esc toggles]",
-                    cam.mouseCaptured ? "captured" : "free");
+        ImGui::Text("Mouse: %s  [Esc toggles]", cam.mouseCaptured ? "captured" : "free");
 
         bool gravOn = cam.gravityEnabled;
         if (ImGui::Button(gravOn ? "Disable Gravity" : "Enable Gravity"))
-            scene.setCameraGravity(!gravOn);
+		{
+			scene.setCameraGravity(!gravOn);
+		}
 
         ImGui::SameLine();
         if (ImGui::Button(cam.freecam ? "Freecam: ON" : "Freecam: OFF"))
