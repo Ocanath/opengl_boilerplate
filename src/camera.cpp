@@ -97,7 +97,7 @@ void Camera::processMouse(double xoffset, double yoffset)
 {
     if (!mouseCaptured) return;
 
-    yaw_   += (float)xoffset * mouseSens_;
+    yaw_   -= (float)xoffset * mouseSens_;
     pitch_ -= (float)yoffset * mouseSens_;
     pitch_  = std::clamp(pitch_, -89.f, 89.f);
 
