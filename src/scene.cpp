@@ -250,11 +250,11 @@ void Scene::buildPillars()
 {
     if (!cubeModel_) return;
 
-    for (float xpos = -20; xpos < 20; xpos += 3)
+    for (float xpos = -30; xpos < 30; xpos += 6)
     {
-        for (float ypos = -20; ypos < 20; ypos += 3)
+        for (float ypos = -30; ypos < 30; ypos += 6)
         {
-            for (float zpos = 40.f; zpos < 40+20.f; zpos += 6.f)
+            for (float zpos = 30.f; zpos < 30+30.f; zpos += 6.f)
             {
                 glm::vec3 pos = { xpos, ypos, zpos };
                 floatingPillars_.emplace_back(
