@@ -78,8 +78,10 @@ endif()
 target_link_libraries(${APP_TARGET}
     glad OpenGL::GL glfw glm::glm imgui assimp
     cobs PPP dartt_protocol dartt_checksum
-    LinearMath Bullet3Common BulletInverseDynamics
-    BulletCollision BulletDynamics BulletSoftBody
+    -Wl,--start-group
+        LinearMath Bullet3Common BulletInverseDynamics
+        BulletCollision BulletDynamics
+    -Wl,--end-group
     ${CMAKE_DL_LIBS}
 )
 
