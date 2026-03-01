@@ -43,6 +43,7 @@ void GravitySwitchAbility::enableGravity(btRigidBody* body)
 
     // Apply N G's for kGravTime seconds, then drop back to 1G
     body->setGravity({0.f, 0.f, -9.8f * kExtraGravN});
+	// body->setLinearVelocity({0, 0, -100});
     body->activate(true);
 
     TimedEffect grav{};

@@ -45,11 +45,11 @@ private:
     bool                      qHeld_ = false;
 
     // Tuning knobs
-    static constexpr float kExtraGravN  = 3.f;   // G multiplier on enable (3G)
-    static constexpr float kGravTime    = 1.0f;  // seconds at N G's before 1G
+    static constexpr float kExtraGravN  = 50.f;   // G multiplier on enable (3G)
+    static constexpr float kGravTime    = 0.1f;  // seconds at N G's before 1G
     static constexpr float kBoostForceZ = 20.f;  // N upward on disable
-    static constexpr float kBoostTime   = 0.1f;  // seconds of upward force
-    static constexpr float kDragTime    = 1.0f;  // seconds of high drag
+    static constexpr float kBoostTime   = 0.5f;  // seconds of upward force
+    static constexpr float kDragTime    = 2.0f;  // seconds of high drag
     static constexpr float kHighLinDamp = 0.95f;
     static constexpr float kHighAngDamp = 0.5f;
 

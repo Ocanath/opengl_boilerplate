@@ -98,7 +98,7 @@ void BeamAbility::onFire(const AbilityContext& ctx)
     }
 
     ctx.lights.push_back({{spawnPos.x, spawnPos.y, spawnPos.z},
-                           8.f, {1.f, 0.9f, 0.6f}, 15.f});
+                           8.f, {1.f, 0.9f, 0.6f}, 100.f});
     beamLightIdx_.push_back(ctx.lights.size() - 1);
 }
 
