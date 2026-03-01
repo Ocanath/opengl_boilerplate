@@ -12,11 +12,16 @@ uniform vec3  lightColors[MAX_LIGHTS];
 uniform float lightIntensities[MAX_LIGHTS];
 uniform vec3  viewPos;
 uniform vec3  objectColor;
+uniform bool  unlit;
 
 out vec4 FragColor;
 
 void main()
 {
+    if (unlit) {
+        FragColor = vec4(objectColor, 1.0);
+        return;
+    }
     vec3 norm     = normalize(Normal);
     vec3 viewDir  = normalize(viewPos - FragPos);
 

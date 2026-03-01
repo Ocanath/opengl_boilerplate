@@ -41,7 +41,8 @@ private:
 
     btRigidBody* groundBody_ = nullptr;
 
-    std::vector<Model>  models_;
-    std::vector<Light>  lights_;
+    std::vector<Model>      models_;
+    std::vector<Light>      lights_;
     std::unique_ptr<Camera> camera_;
+    std::unique_ptr<Model>  lightCubeModel_;
 };

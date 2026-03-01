@@ -53,8 +53,10 @@ add_subdirectory(external/bullet3)
 add_library(glad STATIC src/glad.c)
 target_include_directories(glad PUBLIC src/)
 
-# Copy shaders to build dir at configure time
+# Copy shaders and assets to build dir at configure time
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 set(APP_SOURCES

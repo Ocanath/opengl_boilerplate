@@ -15,6 +15,13 @@ Scene::Scene()
     dynamicsWorld_->setGravity({ 0.f, -9.81f, 0.f });
 
     camera_ = std::make_unique<Camera>(dynamicsWorld_);
+
+    // Load the shared cube mesh used to visualise lights
+    try {
+        lightCubeModel_ = std::make_unique<Model>("assets/cube.obj");
+    } catch (const std::exception& e) {
+        fprintf(stderr, "Scene: could not load light cube: %s\n", e.what());
+    }
 }
 
 Scene::~Scene()
@@ -88,11 +95,25 @@ void Scene::draw(Shader& shader, int width, int height)
         shader.setFloati("lightIntensities", i, lights_[i].intensity);
     }
 
-    // Draw each model with identity transform
+    // Draw scene models
+    shader.setInt("unlit", 0);
     for (auto& model : models_) {
-        glm::mat4 modelMat = glm::mat4(1.f);
-        shader.setMat4("model", modelMat);
+        shader.setMat4("model", glm::mat4(1.f));
         shader.setVec3("objectColor", {0.7f, 0.7f, 0.75f});
         model.draw(shader);
+    }
+
+    // Draw one small emissive cube per light
+    if (lightCubeModel_) {
+        shader.setInt("unlit", 1);
+        for (const auto& light : lights_) {
+            glm::mat4 m = glm::scale(
+                glm::translate(glm::mat4(1.f), light.position),
+                glm::vec3(0.2f));
+            shader.setMat4("model", m);
+            shader.setVec3("objectColor", light.color);
+            lightCubeModel_->draw(shader);
+        }
+        shader.setInt("unlit", 0);
     }
 }

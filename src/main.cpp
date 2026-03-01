@@ -148,8 +148,8 @@ int main()
     // Ground plane at y=0
     scene.addGroundPlane(0.f);
 
-    // Load a default test mesh (tiny in-code cube if no file is provided)
-    // To load a model: scene.addModel("path/to/model.obj");
+    // Load the default unit cube as the test mesh
+    scene.addModel("assets/cube.obj");
 
     Shader shader("shaders/mesh.vert", "shaders/mesh.frag");
 
