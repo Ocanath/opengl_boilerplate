@@ -1,4 +1,5 @@
 #include "scene.h"
+#include <glad/gl.h>
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -33,6 +34,25 @@ Scene::Scene()
     buildChamber();
     buildPillars();
 
+    // Create deferred rendering shaders
+    gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
+    lightingShader_ = std::make_unique<Shader>("shaders/lighting.vert", "shaders/lighting.frag");
+    unlitShader_    = std::make_unique<Shader>("shaders/unlit.vert",    "shaders/unlit.frag");
+
+    // Bind G-buffer texture samplers (units 0,1,2) — set once, permanent
+    lightingShader_->use();
+    lightingShader_->setInt("gPosition", 0);
+    lightingShader_->setInt("gNormal",   1);
+    lightingShader_->setInt("gAlbedo",   2);
+
+    // Light SSBO
+    glGenBuffers(1, &lightSSBO_);
+
+    // Fullscreen quad
+    initQuad();
+
+    // G-buffer is sized on first draw (viewport size unknown at construct time)
+
     // Start dedicated physics thread (~120 Hz)
     physicsRunning_ = true;
     physicsThread_  = std::thread(&Scene::physicsLoop, this);
@@ -56,7 +76,115 @@ Scene::~Scene()
     delete dispatcher_;
     delete collConfig_;
     delete broadphase_;
+
+    // Destroy deferred rendering GL objects
+    destroyGBuffer();
+    glDeleteBuffers(1,      &lightSSBO_);
+    glDeleteVertexArrays(1, &quadVAO_);
+    glDeleteBuffers(1,      &quadVBO_);
 }
+
+// ── G-buffer helpers ──────────────────────────────────────────────────────────
+
+void Scene::initGBuffer(int w, int h)
+{
+    destroyGBuffer();
+
+    glGenFramebuffers(1, &gFBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, gFBO_);
+
+    auto makeColorTex = [&](unsigned int& tex, GLenum internalFmt) {
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFmt, w, h, 0,
+                     GL_RGBA, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    };
+
+    makeColorTex(gPos_,    GL_RGBA16F);
+    makeColorTex(gNorm_,   GL_RGBA16F);
+    makeColorTex(gAlbedo_, GL_RGBA8);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPos_,    0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNorm_,   0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedo_, 0);
+
+    // Depth+stencil renderbuffer
+    glGenRenderbuffers(1, &gDepthRBO_);
+    glBindRenderbuffer(GL_RENDERBUFFER, gDepthRBO_);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                              GL_RENDERBUFFER, gDepthRBO_);
+
+    GLenum bufs[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, bufs);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        fprintf(stderr, "Scene: G-buffer FBO incomplete!\n");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    gWidth_  = w;
+    gHeight_ = h;
+}
+
+void Scene::destroyGBuffer()
+{
+    if (gFBO_)      { glDeleteFramebuffers(1,  &gFBO_);      gFBO_      = 0; }
+    if (gPos_)      { glDeleteTextures(1,      &gPos_);      gPos_      = 0; }
+    if (gNorm_)     { glDeleteTextures(1,      &gNorm_);     gNorm_     = 0; }
+    if (gAlbedo_)   { glDeleteTextures(1,      &gAlbedo_);   gAlbedo_   = 0; }
+    if (gDepthRBO_) { glDeleteRenderbuffers(1, &gDepthRBO_); gDepthRBO_ = 0; }
+    gWidth_ = gHeight_ = 0;
+}
+
+void Scene::initQuad()
+{
+    // NDC fullscreen quad: two triangles covering [-1,1]×[-1,1]
+    // Layout: vec2 pos, vec2 uv — interleaved
+    static const float verts[] = {
+        // pos        // uv
+        -1.f,  1.f,   0.f, 1.f,
+        -1.f, -1.f,   0.f, 0.f,
+         1.f, -1.f,   1.f, 0.f,
+
+        -1.f,  1.f,   0.f, 1.f,
+         1.f, -1.f,   1.f, 0.f,
+         1.f,  1.f,   1.f, 1.f,
+    };
+
+    glGenVertexArrays(1, &quadVAO_);
+    glGenBuffers(1, &quadVBO_);
+    glBindVertexArray(quadVAO_);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+    // aPos (location 0) — vec2
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          reinterpret_cast<void*>(0));
+    // aUV  (location 1) — vec2
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          reinterpret_cast<void*>(2 * sizeof(float)));
+
+    glBindVertexArray(0);
+}
+
+void Scene::uploadLights()
+{
+    if (lights_.empty()) return;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightSSBO_);
+    glBufferData(GL_SHADER_STORAGE_BUFFER,
+                 (GLsizeiptr)(lights_.size() * sizeof(Light)),
+                 lights_.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, lightSSBO_);
+}
+
+// ── Physics loop ──────────────────────────────────────────────────────────────
 
 void Scene::physicsLoop()
 {
@@ -76,6 +204,8 @@ void Scene::physicsLoop()
         std::this_thread::sleep_for(std::chrono::milliseconds(8));
     }
 }
+
+// ── Scene construction helpers ────────────────────────────────────────────────
 
 void Scene::buildChamber()
 {
@@ -109,34 +239,32 @@ void Scene::buildPillars()
 {
     if (!cubeModel_) return;
 
-    // for (int i = 0; i < 5; ++i) 
-	for(float xpos = -20; xpos < 20; xpos += 3)
-	{
-		for(float ypos = -20; ypos < 20; ypos += 3)
-		{
-			for(float zpos = 4.f; zpos < 20.f; zpos += 6.f)
-			{
-				// float     a   = i * 2.f * (float)M_PI / 5.f;
-				glm::vec3 pos = { xpos, ypos, zpos };
-				floatingPillars_.emplace_back(
-					dynamicsWorld_, cubeModel_.get(),
-					glm::vec3{0.1f, 0.1f, 3.f/2.f},
-					pos,
-					glm::vec3{0.2f, 0.2f, 3.f},
-					glm::vec3{0.039f, 0.039f, 0.039f},
-					1.f);  // dynamic mass
-				
-				// Float in place: disable gravity per-body, add heavy damping
-				btRigidBody* b = floatingPillars_.back().getBody();
-				b->setGravity({ 0.f, 0.f, 0.f });
-				b->setDamping(0.0f, 0.0f);
-				b->setActivationState(DISABLE_DEACTIVATION);
-				b->setAngularVelocity({xpos/10, ypos/10, zpos/10});
+    for (float xpos = -20; xpos < 20; xpos += 3)
+    {
+        for (float ypos = -20; ypos < 20; ypos += 3)
+        {
+            for (float zpos = 4.f; zpos < 20.f; zpos += 6.f)
+            {
+                glm::vec3 pos = { xpos, ypos, zpos };
+                floatingPillars_.emplace_back(
+                    dynamicsWorld_, cubeModel_.get(),
+                    glm::vec3{0.1f, 0.1f, 3.f/2.f},
+                    pos,
+                    glm::vec3{0.2f, 0.2f, 3.f},
+                    glm::vec3{0.039f, 0.039f, 0.039f},
+                    1.f);  // dynamic mass
 
-			}
-		}
+                btRigidBody* b = floatingPillars_.back().getBody();
+                b->setGravity({ 0.f, 0.f, 0.f });
+                b->setDamping(0.0f, 0.0f);
+                b->setActivationState(DISABLE_DEACTIVATION);
+                b->setAngularVelocity({xpos/10, ypos/10, zpos/10});
+            }
+        }
     }
 }
+
+// ── Public interface ──────────────────────────────────────────────────────────
 
 void Scene::addModel(const std::string& path)
 {
@@ -145,10 +273,6 @@ void Scene::addModel(const std::string& path)
 
 void Scene::addLight(const Light& light)
 {
-    if ((int)lights_.size() >= MAX_LIGHTS) {
-        fprintf(stderr, "Scene: MAX_LIGHTS reached, ignoring extra light\n");
-        return;
-    }
     lights_.push_back(light);
 
     if (cubeModel_) {
@@ -194,7 +318,7 @@ void Scene::loadCameraFromFile(const std::string& path)
 
 void Scene::update(float /*dt*/, GLFWwindow* window)
 {
-    camera_->processKeyboard(window); // CPU only, no mutex
+    camera_->processKeyboard(window);
 
     {
         std::lock_guard<std::mutex> lk(physicsMutex_);
@@ -204,11 +328,20 @@ void Scene::update(float /*dt*/, GLFWwindow* window)
     }
 }
 
-void Scene::draw(Shader& shader, int width, int height)
-{
-    shader.use();
+// ── 3-pass deferred draw ──────────────────────────────────────────────────────
 
-    // Snapshot camera state under lock, then release before GL calls
+void Scene::draw(int width, int height)
+{
+    if (width <= 0 || height <= 0) return;
+
+    // Rebuild G-buffer if viewport changed
+    if (width != gWidth_ || height != gHeight_)
+        initGBuffer(width, height);
+
+    // Upload lights to SSBO
+    uploadLights();
+
+    // Snapshot camera state under lock
     glm::mat4 view;
     glm::vec3 camPos;
     {
@@ -217,45 +350,68 @@ void Scene::draw(Shader& shader, int width, int height)
         camPos = camera_->getPosition();
     }
 
-    float aspect = (height > 0) ? (float)width / (float)height : 1.f;
-    glm::mat4 proj = glm::perspective(glm::radians(60.f), aspect, 0.1f, 1000.f);
+    float     aspect = (float)width / (float)height;
+    glm::mat4 proj   = glm::perspective(glm::radians(60.f), aspect, 0.1f, 1000.f);
 
-    shader.setMat4("view",       view);
-    shader.setMat4("projection", proj);
-    shader.setVec3("viewPos",    camPos);
+    // ── Pass 1: Geometry → G-buffer ──────────────────────────────────────────
+    glBindFramebuffer(GL_FRAMEBUFFER, gFBO_);
+    glViewport(0, 0, width, height);
+    glClearColor(0.f, 0.f, 0.f, 0.f); // w=0 marks sky in lighting pass
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
-    // Upload lights
-    int n = (int)std::min(lights_.size(), (size_t)MAX_LIGHTS);
-    shader.setInt("numLights", n);
-    for (int i = 0; i < n; ++i) {
-        shader.setVec3i ("lightPositions",   i, lights_[i].position);
-        shader.setVec3i ("lightColors",      i, lights_[i].color);
-        shader.setFloati("lightIntensities", i, lights_[i].intensity);
-    }
+    gShader_->use();
+    gShader_->setMat4("view",       view);
+    gShader_->setMat4("projection", proj);
 
-    // Scene models (lit)
-    shader.setInt("unlit", 0);
+    // Scene models
     for (auto& model : models_) {
-        shader.setMat4("model",       glm::mat4(1.f));
-        shader.setVec3("objectColor", {0.7f, 0.7f, 0.75f});
-        model.draw(shader);
+        gShader_->setMat4("model",       glm::mat4(1.f));
+        gShader_->setVec3("objectColor", {0.7f, 0.7f, 0.75f});
+        model.draw(*gShader_);
     }
 
-    // Chamber walls (lit, dark grey)
-    shader.setInt("unlit", 0);
+    // Chamber walls
     for (auto& wall : chamberWalls_)
-        wall.draw(shader);
+        wall.draw(*gShader_);
 
-    // Floating pillars (lit, near-black)
-    shader.setInt("unlit", 0);
+    // Floating pillars
     for (auto& pillar : floatingPillars_)
-        pillar.draw(shader);
+        pillar.draw(*gShader_);
 
-    // Light cubes (unlit / emissive) — rendered via physics transform for rotation
+    // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, width, height);
+    glClearColor(0.08f, 0.08f, 0.12f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
+    lightingShader_->use();
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, gPos_);
+    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, gNorm_);
+    glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, gAlbedo_);
+    lightingShader_->setVec3("viewPos",   camPos);
+    lightingShader_->setInt ("numLights", (int)lights_.size());
+
+    glBindVertexArray(quadVAO_);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    // ── Pass 3: Blit depth + forward unlit ───────────────────────────────────
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, gFBO_);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, width, height,
+                      0, 0, width, height,
+                      GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glEnable(GL_DEPTH_TEST);
+
     if (!lightBoxes_.empty()) {
-        shader.setInt("unlit", 1);
+        unlitShader_->use();
+        unlitShader_->setMat4("view",       view);
+        unlitShader_->setMat4("projection", proj);
         for (auto& lb : lightBoxes_)
-            lb.draw(shader);
-        shader.setInt("unlit", 0);
+            lb.draw(*unlitShader_);
     }
 }

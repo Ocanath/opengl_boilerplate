@@ -28,7 +28,7 @@ public:
     void addLight(const Light& light);
 
     void update(float dt, struct GLFWwindow* window);
-    void draw(Shader& shader, int viewportWidth, int viewportHeight);
+    void draw(int viewportWidth, int viewportHeight);
 
     Camera& getCamera() { return *camera_; }
     std::vector<Light>& getLights() { return lights_; }
@@ -69,4 +69,31 @@ private:
 
     void buildChamber();
     void buildPillars();
+
+    // ── Deferred rendering ────────────────────────────────────────────────
+    // G-buffer
+    unsigned int gFBO_      = 0;
+    unsigned int gPos_      = 0;   // RGBA16F texture: world position
+    unsigned int gNorm_     = 0;   // RGBA16F texture: world normal
+    unsigned int gAlbedo_   = 0;   // RGBA8   texture: albedo
+    unsigned int gDepthRBO_ = 0;   // D24S8 renderbuffer
+    int          gWidth_    = 0;
+    int          gHeight_   = 0;
+
+    // Light SSBO
+    unsigned int lightSSBO_ = 0;
+
+    // Fullscreen quad
+    unsigned int quadVAO_ = 0;
+    unsigned int quadVBO_ = 0;
+
+    // Owned shaders
+    std::unique_ptr<Shader> gShader_;        // G-buffer pass
+    std::unique_ptr<Shader> lightingShader_; // Lighting pass
+    std::unique_ptr<Shader> unlitShader_;    // Forward unlit pass
+
+    void initGBuffer(int w, int h);
+    void destroyGBuffer();
+    void initQuad();
+    void uploadLights();
 };

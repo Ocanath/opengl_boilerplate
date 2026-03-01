@@ -5,7 +5,6 @@
 #include <imgui_impl_opengl3.h>
 
 #include "scene.h"
-#include "shader.h"
 #include "light.h"
 
 #include <cstdio>
@@ -136,22 +135,19 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(g_window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    // Scene + shader — wrapped in a scope so their destructors run
-    // (releasing GL resources) before glfwDestroyWindow/glfwTerminate.
+    // Scene — wrapped in a scope so destructors run before glfwDestroyWindow.
     {
     Scene scene;
     g_scene = &scene;
     scene.loadCameraFromFile("camera.position");
 
-    // Add some default lights
-    scene.addLight({ {  5.f,  5.f, 18.f}, {1.f, 0.95f, 0.85f}, 15.f });
-    // scene.addLight({ { 5.f, 6.f, 5.f}, {0.7f, 0.8f,  1.f},  15.f });
-    // scene.addLight({ {  0.f, 3.f,  0.f}, {1.f, 1.f,    1.f},  10.f });
+    // Add some default lights: { position, intensity, color, radius }
+    scene.addLight({ {  5.f,  5.f, 18.f}, 15.f, {1.f, 0.95f, 0.85f}, 100.f });
+    // scene.addLight({ { 5.f, 6.f, 5.f}, 15.f, {0.7f, 0.8f,  1.f},  100.f });
+    // scene.addLight({ {  0.f, 3.f,  0.f}, 10.f, {1.f, 1.f,    1.f}, 100.f });
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
-
-    Shader shader("shaders/mesh.vert", "shaders/mesh.frag");
 
     // Timing
     double prevTime = glfwGetTime();
@@ -169,14 +165,10 @@ int main()
         // Update
         scene.update(dt, g_window);
 
-        // Render
+        // Render (deferred — scene owns all shaders now)
         int fbW, fbH;
         glfwGetFramebufferSize(g_window, &fbW, &fbH);
-        glViewport(0, 0, fbW, fbH);
-        glClearColor(0.08f, 0.08f, 0.12f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        scene.draw(shader, fbW, fbH);
+        scene.draw(fbW, fbH);
 
         // ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -210,26 +202,25 @@ int main()
             scene.saveCameraToFile("camera.position");
 
         ImGui::Separator();
-        ImGui::Text("Lights (%d / %d)", (int)scene.getLights().size(), MAX_LIGHTS);
-
         auto& lights = scene.getLights();
+        ImGui::Text("Lights: %d", (int)lights.size());
+
         for (int i = 0; i < (int)lights.size(); ++i) {
             ImGui::PushID(i);
             char label[32];
             snprintf(label, sizeof(label), "Light %d", i);
             if (ImGui::TreeNode(label)) {
-                ImGui::DragFloat3("Position", &lights[i].position.x, 0.1f);
-                ImGui::ColorEdit3("Color",    &lights[i].color.x);
+                ImGui::DragFloat3("Position",  &lights[i].position.x, 0.1f);
+                ImGui::ColorEdit3("Color",     &lights[i].color.x);
                 ImGui::SliderFloat("Intensity", &lights[i].intensity, 0.f, 100.f);
+                ImGui::SliderFloat("Radius",    &lights[i].radius,    1.f, 500.f);
                 ImGui::TreePop();
             }
             ImGui::PopID();
         }
 
-        if ((int)lights.size() < MAX_LIGHTS) {
-            if (ImGui::Button("Add Light")) {
-                scene.addLight({ {0.f, 0.f, 20.f}, {1.f, 1.f, 1.f}, 1.f });
-            }
+        if (ImGui::Button("Add Light")) {
+            scene.addLight({ {0.f, 0.f, 20.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
         }
 
         ImGui::End();
@@ -241,7 +232,7 @@ int main()
     }
 
     g_scene = nullptr;
-    } // scene + shader destroyed here — GL context still live
+    } // scene destroyed here — GL context still live
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
