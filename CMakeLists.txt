@@ -11,7 +11,7 @@ add_library(imgui STATIC
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+    # ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 target_include_directories(imgui PUBLIC
@@ -33,7 +33,7 @@ set(APP_SOURCES
 )
 
 
-elseif(WIN32)
+if(WIN32)
     set(APP_TARGET ${PROJECT_NAME})
     add_executable(${PROJECT_NAME} ${APP_SOURCES})
 
