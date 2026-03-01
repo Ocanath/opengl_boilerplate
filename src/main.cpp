@@ -156,9 +156,21 @@ int main()
     scene.loadCameraFromFile("camera.position");
 
     // Add some default lights: { position, intensity, color, radius }
-    scene.addLight({ {  5.f,  5.f, 18.f}, 15.f, {1.f, 0.95f, 0.85f}, 100.f });
-    // scene.addLight({ { 5.f, 6.f, 5.f}, 15.f, {0.7f, 0.8f,  1.f},  100.f });
-    // scene.addLight({ {  0.f, 3.f,  0.f}, 10.f, {1.f, 1.f,    1.f}, 100.f });
+	const int n_circlelights = 50;
+	for(int i = 0; i < n_circlelights; i++)
+	{
+		float fi = (float)i;
+		float xl = cos(fi*2*M_PI/(float)n_circlelights)*5;
+		float yl = sin(fi*2*M_PI/(float)n_circlelights)*5;
+		scene.addLight({ {xl, yl, 20.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
+	}
+	for(int i = 0; i < n_circlelights; i++)
+	{
+		float fi = (float)i;
+		float xl = cos(fi*2*M_PI/(float)n_circlelights)*15;
+		float yl = sin(fi*2*M_PI/(float)n_circlelights)*15;
+		scene.addLight({ {xl, yl, 70.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
+	}
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
