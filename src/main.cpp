@@ -147,9 +147,6 @@ int main()
     scene.addLight({ { -5.f, 6.f, -5.f}, {0.7f, 0.8f,  1.f},  15.f });
     scene.addLight({ {  0.f, 3.f,  0.f}, {1.f, 1.f,    1.f},  10.f });
 
-    // Ground plane at y=0
-    scene.addGroundPlane(0.f);
-
     // Load the default unit cube as the test mesh
     scene.addModel("assets/cube.obj");
 
@@ -185,15 +182,13 @@ int main()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Overlay
-        ImGui::SetNextWindowPos({10.f, 10.f}, ImGuiCond_Always);
-        ImGui::SetNextWindowSize({340.f, 0.f}, ImGuiCond_Always);
-        ImGui::Begin("Overlay", nullptr,
-                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoCollapse);
+        // Overlay — moveable and collapsible
+        ImGui::SetNextWindowPos({10.f, 10.f}, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({340.f, 0.f}, ImGuiCond_FirstUseEver);
+        ImGui::Begin("Overlay");
 
         ImGui::Text("FPS: %.1f  (%.2f ms)", 1.f / dt, dt * 1000.f);
-        glm::vec3 pos = scene.getCamera().getPosition();
+        glm::vec3 pos = scene.getCameraPosition();
         ImGui::Text("Camera: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         ImGui::Text("Mouse: %s  [Esc toggles]",
                     scene.getCamera().mouseCaptured ? "captured" : "free");

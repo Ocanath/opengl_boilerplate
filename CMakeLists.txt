@@ -66,6 +66,7 @@ set(APP_SOURCES
     src/model.cpp
     src/camera.cpp
     src/scene.cpp
+    src/collision_box.cpp
 )
 
 if(WIN32)

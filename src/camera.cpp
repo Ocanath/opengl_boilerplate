@@ -1,7 +1,6 @@
 #include "camera.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <btBulletDynamicsCommon.h>
 #include <algorithm>
 #include <cmath>
@@ -9,27 +8,25 @@
 Camera::Camera(btDiscreteDynamicsWorld* world, glm::vec3 startPos)
     : world_(world)
 {
-    // Capsule shape: radius 0.3, height 1.8
-    shape_ = new btCapsuleShape(0.3f, 1.8f);
+    // Box shape: half extents (1, 2.5, 1) — 2×5×2 bounding box
+    shape_ = new btBoxShape({ 1.f, 2.5f, 1.f });
 
     btTransform startTransform;
     startTransform.setIdentity();
     startTransform.setOrigin({ startPos.x, startPos.y, startPos.z });
 
-    // Kinematic body — we drive the transform ourselves
+    // Dynamic body — gravity applies
+    btVector3 inertia(0, 0, 0);
+    shape_->calculateLocalInertia(80.f, inertia);
+
     motion_ = new btDefaultMotionState(startTransform);
-    btRigidBody::btRigidBodyConstructionInfo ci(
-        0.f,    // mass=0 → static, but we add CF_KINEMATIC_OBJECT
-        motion_,
-        shape_,
-        btVector3(0, 0, 0));
+    btRigidBody::btRigidBodyConstructionInfo ci(80.f, motion_, shape_, inertia);
     body_ = new btRigidBody(ci);
-    body_->setCollisionFlags(body_->getCollisionFlags() |
-                              btCollisionObject::CF_KINEMATIC_OBJECT);
-    body_->setActivationState(DISABLE_DEACTIVATION);
+
+    // Prevent tipping — lock all rotational axes
+    body_->setAngularFactor({ 0.f, 0.f, 0.f });
 
     world_->addRigidBody(body_);
-
     updateVectors();
 }
 
@@ -56,7 +53,8 @@ void Camera::updateVectors()
 
 void Camera::processKeyboard(GLFWwindow* window)
 {
-    velocity_ = {0.f, 0.f, 0.f};
+    velocity_        = {0.f, 0.f, 0.f};
+    vertInputActive_ = false;
 
     if (!mouseCaptured) return;
 
@@ -67,11 +65,32 @@ void Camera::processKeyboard(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) velocity_ -= right_;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) velocity_ += right_;
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE)        == GLFW_PRESS) velocity_.y += 1.f;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) velocity_.y -= 1.f;
+    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+        velocity_.y      += 1.f;
+        vertInputActive_  = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+        velocity_.y      -= 1.f;
+        vertInputActive_  = true;
+    }
 
-    if (glm::length(velocity_) > 0.001f)
-        velocity_ = glm::normalize(velocity_);
+    // Normalize horizontal component independently
+    glm::vec3 horiz = { velocity_.x, 0.f, velocity_.z };
+    if (glm::length(horiz) > 0.001f)
+        horiz = glm::normalize(horiz);
+    velocity_.x = horiz.x;
+    velocity_.z = horiz.z;
+}
+
+void Camera::applyVelocity()
+{
+    btVector3 cur = body_->getLinearVelocity();
+    float vx = velocity_.x * moveSpeed_;
+    float vz = velocity_.z * moveSpeed_;
+    // Preserve physics-driven Y velocity unless player explicitly controls it
+    float vy = vertInputActive_ ? velocity_.y * moveSpeed_ : cur.y();
+    body_->setLinearVelocity({ vx, vy, vz });
+    body_->activate(true);
 }
 
 void Camera::processMouse(double xoffset, double yoffset)
@@ -83,22 +102,6 @@ void Camera::processMouse(double xoffset, double yoffset)
     pitch_  = std::clamp(pitch_, -89.f, 89.f);
 
     updateVectors();
-}
-
-void Camera::update(float dt)
-{
-    // Get current world position from body
-    btTransform t;
-    body_->getMotionState()->getWorldTransform(t);
-    btVector3 pos = t.getOrigin();
-
-    // Integrate velocity
-    pos += btVector3(velocity_.x, velocity_.y, velocity_.z) * moveSpeed_ * dt;
-
-    // Push new transform back to the kinematic body
-    t.setOrigin(pos);
-    body_->getMotionState()->setWorldTransform(t);
-    body_->setWorldTransform(t);
 }
 
 glm::mat4 Camera::getViewMatrix() const
