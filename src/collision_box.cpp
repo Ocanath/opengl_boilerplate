@@ -1,6 +1,7 @@
 #include "collision_box.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 CollisionBox::CollisionBox(btDiscreteDynamicsWorld* world,
                            Model*      model,
@@ -118,7 +119,12 @@ glm::mat4 CollisionBox::getModelMatrix() const
 {
     btTransform t;
     body_->getMotionState()->getWorldTransform(t);
-    btVector3 p = t.getOrigin();
-    glm::mat4 m = glm::translate(glm::mat4(1.f), { p.x(), p.y(), p.z() });
-    return glm::scale(m, visualScale_);
+    btVector3    p = t.getOrigin();
+    btQuaternion q = t.getRotation();
+
+    glm::mat4 trans    = glm::translate(glm::mat4(1.f), { p.x(), p.y(), p.z() });
+    glm::mat4 rotMat   = glm::mat4_cast(glm::quat(q.w(), q.x(), q.y(), q.z()));
+    glm::mat4 scaleMat = glm::scale(glm::mat4(1.f), visualScale_);
+
+    return trans * rotMat * scaleMat;
 }

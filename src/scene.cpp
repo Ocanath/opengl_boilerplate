@@ -117,7 +117,13 @@ void Scene::buildPillars()
             glm::vec3{1.f, 2.5f, 1.f},
             pos,
             glm::vec3{2.f, 5.f, 2.f},
-            glm::vec3{0.039f, 0.039f, 0.039f});
+            glm::vec3{0.039f, 0.039f, 0.039f},
+            30.f);  // dynamic mass
+
+        // Float in place: disable gravity per-body, add heavy damping
+        btRigidBody* b = floatingPillars_.back().getBody();
+        b->setGravity({ 0.f, 0.f, 0.f });
+        b->setDamping(0.85f, 0.85f);
     }
 }
 
