@@ -136,7 +136,9 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(g_window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    // Scene + shader
+    // Scene + shader — wrapped in a scope so their destructors run
+    // (releasing GL resources) before glfwDestroyWindow/glfwTerminate.
+    {
     Scene scene;
     g_scene = &scene;
 
@@ -226,6 +228,9 @@ int main()
 
         glfwSwapBuffers(g_window);
     }
+
+    g_scene = nullptr;
+    } // scene + shader destroyed here — GL context still live
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
