@@ -114,7 +114,7 @@ void GravitySwitchAbility::update(float dt, const AbilityContext& ctx, bool qHel
         float dx = screenX - (float)ctx.viewW * 0.5f;
         float dy = screenY - (float)ctx.viewH * 0.5f;
 
-        if (std::sqrt(dx * dx + dy * dy) <= 50.f)
+        if (std::sqrt(dx * dx + dy * dy) <= 100.f)
             selected_.push_back(body);
     }
 }
@@ -145,6 +145,7 @@ void GravitySwitchAbility::onDeselect()
 
 void GravitySwitchAbility::drawHUD(ImDrawList* dl, float cx, float cy)
 {
+	return;
     if (!qHeld_) return;
 
     ImU32 colour = selected_.empty() ? IM_COL32(180, 180, 180, 150)

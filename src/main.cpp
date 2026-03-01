@@ -249,6 +249,8 @@ int main()
         }
         ImGui::NewLine();
         ImGui::Text("Q = activate  LMB = fire");
+        if (scene.getAbilityCount() > 0)
+            ImGui::SliderFloat("Beam Velocity", &scene.beamFireVelocity(), 1.f, 1000.f);
 
         ImGui::End();
 

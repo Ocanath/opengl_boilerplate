@@ -360,6 +360,11 @@ const char* Scene::getAbilityName(int i) const
     return abilities_[i]->name();
 }
 
+float& Scene::beamFireVelocity()
+{
+    return static_cast<BeamAbility*>(abilities_[0].get())->fireVelocity;
+}
+
 void Scene::drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy)
 {
     if (!abilities_.empty())

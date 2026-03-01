@@ -13,22 +13,21 @@ public:
     void onFire(const AbilityContext& ctx) override;
     void onDeselect() override;
 
-    void drawPreview(Shader& unlitShader,
-                     const glm::mat4& view, const glm::mat4& proj) override;
-
     void drawHUD(ImDrawList* dl, float cx, float cy) override;
 
     const std::vector<CollisionBox>* getBoxes() const override { return &firedBeams_; }
 
+    float fireVelocity = 100.f;  // exposed for UI slider
+
 private:
-    bool      previewing_   = false;
-    glm::vec3 previewPos_   = {};
-    glm::vec3 previewFront_ = {0.f, 0.f, 1.f};
+    bool qHeld_     = false;
+    bool prevQHeld_ = false;
 
     std::vector<CollisionBox> firedBeams_;
     std::vector<size_t>       beamLightIdx_;  // index into scene lights_ for each beam
 
     Model* cubeModel_;  // non-owning
 
+    void cleanupSession(const AbilityContext& ctx);
     static glm::quat rotateZTo(const glm::vec3& target);
 };

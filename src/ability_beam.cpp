@@ -6,6 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/constants.hpp>
 #include <imgui.h>
+#include <algorithm>
 #include <mutex>
 #include <cmath>
 
@@ -33,10 +34,6 @@ glm::quat BeamAbility::rotateZTo(const glm::vec3& target)
 
 void BeamAbility::update(float /*dt*/, const AbilityContext& ctx, bool qHeld)
 {
-    previewing_   = qHeld;
-    previewPos_   = ctx.camPos;
-    previewFront_ = ctx.camFront;
-
     // Sync beam lights to current physics positions
     if (!firedBeams_.empty()) {
         std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
@@ -46,14 +43,36 @@ void BeamAbility::update(float /*dt*/, const AbilityContext& ctx, bool qHeld)
                 ctx.lights[li].position = firedBeams_[i].getPosition();
         }
     }
+
+    // Detect Q-release edge → clean up session
+    if (prevQHeld_ && !qHeld)
+        cleanupSession(ctx);
+
+    prevQHeld_ = qHeld_;
+    qHeld_     = qHeld;
+}
+
+void BeamAbility::cleanupSession(const AbilityContext& ctx)
+{
+    // Remove lights in reverse index order so earlier indices stay valid
+    std::sort(beamLightIdx_.begin(), beamLightIdx_.end(), std::greater<size_t>());
+    for (size_t idx : beamLightIdx_) {
+        if (idx < ctx.lights.size())
+            ctx.lights.erase(ctx.lights.begin() + (ptrdiff_t)idx);
+    }
+    beamLightIdx_.clear();
+
+    // Remove physics bodies (CollisionBox dtors call world->removeRigidBody)
+    std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
+    firedBeams_.clear();
 }
 
 void BeamAbility::onFire(const AbilityContext& ctx)
 {
-    if (!previewing_ || !cubeModel_) return;
+    if (!qHeld_ || !cubeModel_) return;
 
-    glm::quat rot      = rotateZTo(previewFront_);
-    glm::vec3 spawnPos = previewPos_ + previewFront_ * 2.5f;
+    glm::quat rot      = rotateZTo(ctx.camFront);
+    glm::vec3 spawnPos = ctx.camPos + ctx.camFront * 2.5f;
 
     {
         std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
@@ -63,7 +82,7 @@ void BeamAbility::onFire(const AbilityContext& ctx)
             spawnPos,
             glm::vec3{0.2f, 0.2f, 3.0f},
             glm::vec3{1.f, 1.f, 0.5f},
-            1.f,
+            10.f,
             rot,
             false);
 
@@ -72,9 +91,9 @@ void BeamAbility::onFire(const AbilityContext& ctx)
         b->setDamping(0.f, 0.f);
         b->setActivationState(DISABLE_DEACTIVATION);
         b->setLinearVelocity({
-            previewFront_.x * 20.f,
-            previewFront_.y * 20.f,
-            previewFront_.z * 20.f
+            ctx.camFront.x * fireVelocity,
+            ctx.camFront.y * fireVelocity,
+            ctx.camFront.z * fireVelocity
         });
     }
 
@@ -85,29 +104,13 @@ void BeamAbility::onFire(const AbilityContext& ctx)
 
 void BeamAbility::onDeselect()
 {
-    previewing_ = false;
-}
-
-void BeamAbility::drawPreview(Shader& shader,
-                               const glm::mat4& /*view*/, const glm::mat4& /*proj*/)
-{
-    if (!previewing_ || !cubeModel_) return;
-
-    glm::vec3 center = previewPos_ + previewFront_ * 2.5f;
-    glm::quat rot    = rotateZTo(previewFront_);
-
-    glm::mat4 model =
-        glm::translate(glm::mat4(1.f), center)
-        * glm::mat4_cast(rot)
-        * glm::scale(glm::mat4(1.f), {0.2f, 0.2f, 3.0f});
-
-    shader.setMat4("model",       model);
-    shader.setVec3("objectColor", {1.f, 1.f, 0.6f});
-    cubeModel_->draw(shader);
+    qHeld_ = false;
 }
 
 void BeamAbility::drawHUD(ImDrawList* dl, float cx, float cy)
 {
-    if (!previewing_) return;
-    dl->AddText({cx - 20.f, cy + 10.f}, IM_COL32(255, 255, 150, 200), "BEAM");
+    if (!qHeld_) return;
+    char buf[32];
+    snprintf(buf, sizeof(buf), "BEAM [%d]", (int)firedBeams_.size());
+    dl->AddText({cx - 30.f, cy + 10.f}, IM_COL32(255, 255, 150, 200), buf);
 }

@@ -53,6 +53,7 @@ public:
     int         getActiveAbility() const { return activeAbility_; }
     int         getAbilityCount()  const { return (int)abilities_.size(); }
     const char* getAbilityName(int i) const;
+    float&      beamFireVelocity();      // ref to BeamAbility::fireVelocity for UI
 
 private:
     // Bullet objects (owned)
