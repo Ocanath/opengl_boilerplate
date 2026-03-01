@@ -50,6 +50,14 @@ static void cursorPosCallback(GLFWwindow*, double xpos, double ypos)
     cam.processMouse(dx, dy);
 }
 
+static void mouseButtonCallback(GLFWwindow*, int btn, int action, int /*mods*/)
+{
+    if (btn == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        if (g_scene && !ImGui::GetIO().WantCaptureMouse)
+            g_scene->firePrimary();
+    }
+}
+
 static void keyCallback(GLFWwindow* window, int key, int /*scancode*/,
                         int action, int /*mods*/)
 {
@@ -66,6 +74,10 @@ static void keyCallback(GLFWwindow* window, int key, int /*scancode*/,
             g_firstMouse = true;
         }
     }
+
+    if (key == GLFW_KEY_1 && action == GLFW_PRESS) g_scene->selectAbility(0);
+    if (key == GLFW_KEY_2 && action == GLFW_PRESS) g_scene->selectAbility(1);
+    if (key == GLFW_KEY_3 && action == GLFW_PRESS) g_scene->selectAbility(2);
 }
 
 // ─── GLAD error callback ─────────────────────────────────────────────────────
@@ -124,6 +136,7 @@ int main()
     glfwSetFramebufferSizeCallback(g_window, framebufferSizeCallback);
     glfwSetCursorPosCallback(g_window, cursorPosCallback);
     glfwSetKeyCallback(g_window, keyCallback);
+    glfwSetMouseButtonCallback(g_window, mouseButtonCallback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // ImGui
@@ -223,7 +236,28 @@ int main()
             scene.addLight({ {0.f, 0.f, 20.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
         }
 
+        ImGui::Separator();
+        ImGui::Text("Abilities  [1/2/3]");
+        for (int i = 0; i < scene.getAbilityCount(); ++i) {
+            bool active = (i == scene.getActiveAbility());
+            if (active) ImGui::PushStyleColor(ImGuiCol_Button, {0.3f, 0.6f, 1.f, 1.f});
+            if (ImGui::Button(scene.getAbilityName(i))) scene.selectAbility(i);
+            if (active) ImGui::PopStyleColor();
+            ImGui::SameLine();
+        }
+        ImGui::NewLine();
+        ImGui::Text("Q = activate  LMB = fire");
+
         ImGui::End();
+
+        // Foreground HUD overlays (drawn over everything, outside any window)
+        {
+            float cx = (float)fbW * 0.5f;
+            float cy = (float)fbH * 0.5f;
+            auto* dl = ImGui::GetForegroundDrawList();
+            dl->AddCircleFilled({cx, cy}, 3.f, IM_COL32(255, 255, 255, 200));
+            scene.drawActiveAbilityHUD(dl, cx, cy);
+        }
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

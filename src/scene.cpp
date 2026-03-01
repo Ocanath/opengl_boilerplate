@@ -1,5 +1,9 @@
 #include "scene.h"
+#include "ability_beam.h"
+#include "ability_gravity.h"
 #include <glad/gl.h>
+#include <GLFW/glfw3.h>
+#include <imgui.h>
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -53,6 +57,10 @@ Scene::Scene()
 
     // G-buffer is sized on first draw (viewport size unknown at construct time)
 
+    // Register abilities
+    abilities_.push_back(std::make_unique<BeamAbility>(cubeModel_.get()));
+    abilities_.push_back(std::make_unique<GravitySwitchAbility>());
+
     // Start dedicated physics thread (~120 Hz)
     physicsRunning_ = true;
     physicsThread_  = std::thread(&Scene::physicsLoop, this);
@@ -66,6 +74,7 @@ Scene::~Scene()
         physicsThread_.join();
 
     // Remove collision bodies from world (in reverse dependency order)
+    abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
     lightBoxes_.clear();
     floatingPillars_.clear();
     chamberWalls_.clear();
@@ -316,7 +325,37 @@ void Scene::loadCameraFromFile(const std::string& path)
     camera_->loadFromFile(path);
 }
 
-void Scene::update(float /*dt*/, GLFWwindow* window)
+void Scene::selectAbility(int i)
+{
+    if (i == activeAbility_ || i < 0 || i >= (int)abilities_.size()) return;
+    abilities_[activeAbility_]->onDeselect();
+    activeAbility_ = i;
+}
+
+void Scene::firePrimary()
+{
+    if (!camera_->mouseCaptured || abilities_.empty()) return;
+    AbilityContext ctx {
+        dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
+        camPos_, camFront_, lastView_, lastProj_,
+        lastViewW_, lastViewH_, lights_
+    };
+    abilities_[activeAbility_]->onFire(ctx);
+}
+
+const char* Scene::getAbilityName(int i) const
+{
+    if (i < 0 || i >= (int)abilities_.size()) return "";
+    return abilities_[i]->name();
+}
+
+void Scene::drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy)
+{
+    if (!abilities_.empty())
+        abilities_[activeAbility_]->drawHUD(dl, cx, cy);
+}
+
+void Scene::update(float dt, GLFWwindow* window)
 {
     camera_->processKeyboard(window);
 
@@ -325,6 +364,22 @@ void Scene::update(float /*dt*/, GLFWwindow* window)
         camera_->applyVelocity();
         for (size_t i = 0; i < lights_.size() && i < lightBoxes_.size(); ++i)
             lights_[i].position = lightBoxes_[i].getPosition();
+
+        // Snapshot camera state for ability system
+        camPos_   = camera_->getPosition();
+        camFront_ = camera_->getFront();
+    }
+
+    // Update active ability
+    if (!abilities_.empty()) {
+        AbilityContext ctx {
+            dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
+            camPos_, camFront_, lastView_, lastProj_,
+            lastViewW_, lastViewH_, lights_
+        };
+        bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+                  && camera_->mouseCaptured;
+        abilities_[activeAbility_]->update(dt, ctx, qHeld);
     }
 }
 
@@ -352,6 +407,12 @@ void Scene::draw(int width, int height)
 
     float     aspect = (float)width / (float)height;
     glm::mat4 proj   = glm::perspective(glm::radians(60.f), aspect, 0.1f, 1000.f);
+
+    // Store for ability system (gravity selection projection, etc.)
+    lastView_  = view;
+    lastProj_  = proj;
+    lastViewW_ = width;
+    lastViewH_ = height;
 
     // ── Pass 1: Geometry → G-buffer ──────────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, gFBO_);
@@ -407,11 +468,19 @@ void Scene::draw(int width, int height)
 
     glEnable(GL_DEPTH_TEST);
 
-    if (!lightBoxes_.empty()) {
-        unlitShader_->use();
-        unlitShader_->setMat4("view",       view);
-        unlitShader_->setMat4("projection", proj);
-        for (auto& lb : lightBoxes_)
-            lb.draw(*unlitShader_);
+    unlitShader_->use();
+    unlitShader_->setMat4("view",       view);
+    unlitShader_->setMat4("projection", proj);
+
+    for (auto& lb : lightBoxes_)
+        lb.draw(*unlitShader_);
+
+    // Ability preview geometry + owned fired boxes
+    if (!abilities_.empty()) {
+        AbilityBase* ab = abilities_[activeAbility_].get();
+        ab->drawPreview(*unlitShader_, view, proj);
+        if (auto* boxes = ab->getBoxes())
+            for (const auto& box : *boxes)
+                box.draw(*unlitShader_);
     }
 }

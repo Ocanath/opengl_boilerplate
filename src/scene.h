@@ -10,6 +10,9 @@
 #include "light.h"
 #include "shader.h"
 #include "collision_box.h"
+#include "ability.h"
+
+struct ImDrawList;
 
 // Forward-declare Bullet types
 class btBroadphaseInterface;
@@ -42,6 +45,14 @@ public:
     void saveCameraToFile(const std::string& path);
     void loadCameraFromFile(const std::string& path);
 
+    // Ability system
+    void selectAbility(int index);   // 0-based
+    void firePrimary();              // on LMB press
+    void drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy);
+    int         getActiveAbility() const { return activeAbility_; }
+    int         getAbilityCount()  const { return (int)abilities_.size(); }
+    const char* getAbilityName(int i) const;
+
 private:
     // Bullet objects (owned)
     btBroadphaseInterface*               broadphase_    = nullptr;
@@ -66,6 +77,18 @@ private:
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
     std::vector<CollisionBox> floatingPillars_; // 5 static pillars
+
+    // Ability system
+    std::vector<std::unique_ptr<AbilityBase>> abilities_;
+    int activeAbility_ = 0;
+
+    // Per-frame camera snapshot (set in update, consumed by ability system)
+    glm::vec3 camPos_    = {};
+    glm::vec3 camFront_  = {1.f, 0.f, 0.f};
+    glm::mat4 lastView_  = glm::mat4(1.f);
+    glm::mat4 lastProj_  = glm::mat4(1.f);
+    int       lastViewW_ = 0;
+    int       lastViewH_ = 0;
 
     void buildChamber();
     void buildPillars();

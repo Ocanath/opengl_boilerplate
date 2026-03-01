@@ -67,6 +67,8 @@ set(APP_SOURCES
     src/camera.cpp
     src/scene.cpp
     src/collision_box.cpp
+    src/ability_beam.cpp
+    src/ability_gravity.cpp
 )
 
 if(WIN32)
