@@ -27,6 +27,8 @@ add_subdirectory(external/byte-stuffing)
 # dartt-protocol (provides: dartt_protocol, dartt_checksum)
 add_subdirectory(external/dartt-protocol)
 
+#add bullet!
+add_subdirectory(external/bullet3)
 
 set(APP_SOURCES
     src/main.cpp
@@ -53,4 +55,10 @@ target_link_libraries(${APP_TARGET}
     PPP
     dartt_protocol
     dartt_checksum
+	LinearMath
+	Bullet3Common
+	BulletInverseDynamics
+	BulletCollision
+	BulletDynamics
+	BulletSoftBody
 )
