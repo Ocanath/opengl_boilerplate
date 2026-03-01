@@ -141,6 +141,7 @@ int main()
     {
     Scene scene;
     g_scene = &scene;
+    scene.loadCameraFromFile("camera.position");
 
     // Add some default lights
     scene.addLight({ {  5.f,  5.f, 18.f}, {1.f, 0.95f, 0.85f}, 15.f });
@@ -192,6 +193,13 @@ int main()
         ImGui::Text("Camera: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
         ImGui::Text("Mouse: %s  [Esc toggles]",
                     scene.getCamera().mouseCaptured ? "captured" : "free");
+
+        bool gravOn = scene.getCamera().gravityEnabled;
+        if (ImGui::Button(gravOn ? "Disable Gravity" : "Enable Gravity"))
+            scene.setCameraGravity(!gravOn);
+
+        if (ImGui::Button("Save Camera"))
+            scene.saveCameraToFile("camera.position");
 
         ImGui::Separator();
         ImGui::Text("Lights (%d / %d)", (int)scene.getLights().size(), MAX_LIGHTS);

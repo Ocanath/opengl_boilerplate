@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <string>
 
 // Forward-declare Bullet types to avoid pulling in all headers
 class btRigidBody;
@@ -27,7 +28,13 @@ public:
     glm::vec3 getPosition()   const;
     glm::vec3 getFront()      const;
 
-    bool mouseCaptured = true;
+    bool mouseCaptured  = true;
+    bool gravityEnabled = true;
+
+    void setGravity(bool enabled);
+
+    void saveToFile(const std::string& path) const;
+    void loadFromFile(const std::string& path);
 
 private:
     btDiscreteDynamicsWorld* world_;

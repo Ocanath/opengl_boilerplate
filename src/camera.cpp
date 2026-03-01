@@ -1,5 +1,6 @@
 #include "camera.h"
 #include <GLFW/glfw3.h>
+#include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <btBulletDynamicsCommon.h>
 #include <algorithm>
@@ -87,8 +88,8 @@ void Camera::applyVelocity()
     btVector3 cur = body_->getLinearVelocity();
     float vx = velocity_.x * moveSpeed_;
     float vy = velocity_.y * moveSpeed_;
-    // Preserve physics-driven Z velocity (gravity) unless player explicitly controls it
-    float vz = vertInputActive_ ? velocity_.z * moveSpeed_ : cur.z();
+    // Preserve physics-driven Z (gravity) when active; snap to 0 when gravity is off and no key held
+    float vz = vertInputActive_ ? velocity_.z * moveSpeed_ : (gravityEnabled ? cur.z() : 0.f);
     body_->setLinearVelocity({ vx, vy, vz });
     body_->activate(true);
 }
@@ -119,3 +120,43 @@ glm::vec3 Camera::getPosition() const
 }
 
 glm::vec3 Camera::getFront() const { return front_; }
+
+void Camera::saveToFile(const std::string& path) const
+{
+    glm::vec3 pos = getPosition();
+    std::ofstream f(path);
+    if (f) f << pos.x << ' ' << pos.y << ' ' << pos.z
+             << ' ' << yaw_ << ' ' << pitch_ << '\n';
+}
+
+void Camera::loadFromFile(const std::string& path)
+{
+    std::ifstream f(path);
+    if (!f) return;
+    float x, y, z, yaw, pitch;
+    if (!(f >> x >> y >> z >> yaw >> pitch)) return;
+
+    btTransform t;
+    t.setIdentity();
+    t.setOrigin({ x, y, z });
+    body_->setWorldTransform(t);
+    motion_->setWorldTransform(t);
+    body_->clearForces();
+    body_->setLinearVelocity({ 0.f, 0.f, 0.f });
+    body_->setAngularVelocity({ 0.f, 0.f, 0.f });
+    body_->activate(true);
+
+    yaw_   = yaw;
+    pitch_ = pitch;
+    updateVectors();
+}
+
+void Camera::setGravity(bool enabled)
+{
+    gravityEnabled = enabled;
+    body_->setGravity(enabled ? world_->getGravity() : btVector3(0.f, 0.f, 0.f));
+    if (!enabled) {
+        btVector3 v = body_->getLinearVelocity();
+        body_->setLinearVelocity({ v.x(), v.y(), 0.f });
+    }
+}

@@ -130,7 +130,8 @@ void Scene::buildPillars()
 				btRigidBody* b = floatingPillars_.back().getBody();
 				b->setGravity({ 0.f, 0.f, 0.f });
 				b->setDamping(0.0f, 0.0f);
-				b->setAngularVelocity({0.0, 0.0, 0.1});
+				b->setActivationState(DISABLE_DEACTIVATION);
+				b->setAngularVelocity({xpos/10, ypos/10, zpos/10});
 
 			}
 		}
@@ -171,6 +172,24 @@ glm::vec3 Scene::getCameraPosition()
 {
     std::lock_guard<std::mutex> lk(physicsMutex_);
     return camera_->getPosition();
+}
+
+void Scene::setCameraGravity(bool enabled)
+{
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    camera_->setGravity(enabled);
+}
+
+void Scene::saveCameraToFile(const std::string& path)
+{
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    camera_->saveToFile(path);
+}
+
+void Scene::loadCameraFromFile(const std::string& path)
+{
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    camera_->loadFromFile(path);
 }
 
 void Scene::update(float /*dt*/, GLFWwindow* window)

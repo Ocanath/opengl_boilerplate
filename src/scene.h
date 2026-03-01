@@ -36,6 +36,12 @@ public:
     // Thread-safe camera position read
     glm::vec3 getCameraPosition();
 
+    // Thread-safe camera gravity toggle
+    void setCameraGravity(bool enabled);
+
+    void saveCameraToFile(const std::string& path);
+    void loadCameraFromFile(const std::string& path);
+
 private:
     // Bullet objects (owned)
     btBroadphaseInterface*               broadphase_    = nullptr;
