@@ -22,6 +22,8 @@ struct AbilityContext {
     glm::mat4 proj;
     int       viewW, viewH;
 
+    bool lmbHeld = false;        // true when LMB held and mouse is captured
+
     std::vector<Light>& lights;  // scene's main light list (abilities may append)
 };
 
@@ -42,12 +44,18 @@ public:
     // Called when the player switches away from this ability.
     virtual void onDeselect() = 0;
 
+    // Called on mouse scroll (delta in scroll ticks, positive = up).
+    virtual void onScroll(float delta) {}
+
     // Render any 3D preview geometry (called in Pass 3 unlit pass; shader already bound).
     virtual void drawPreview(Shader& unlitShader,
                              const glm::mat4& view, const glm::mat4& proj) {}
 
     // Draw HUD overlays via ImGui DrawList (cx/cy = screen centre in pixels).
     virtual void drawHUD(ImDrawList* dl, float cx, float cy) {}
+
+    // Draw ImGui overlay window contents (called inside an ImGui::Begin/End block).
+    virtual void drawOverlay() {}
 
     // Scene calls this to collect ability-owned CollisionBoxes for the unlit render pass.
     virtual const std::vector<CollisionBox>* getBoxes() const { return nullptr; }

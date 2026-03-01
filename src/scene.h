@@ -53,6 +53,8 @@ public:
     void firePrimary();              // on LMB press
     void fireSecondary();            // on RMB press
     void drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy);
+    void onScroll(float delta);
+    void drawActiveAbilityOverlay();
     int         getActiveAbility() const { return activeAbility_; }
     int         getAbilityCount()  const { return (int)abilities_.size(); }
     const char* getAbilityName(int i) const;

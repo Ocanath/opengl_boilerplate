@@ -51,6 +51,15 @@ static void cursorPosCallback(GLFWwindow*, double xpos, double ypos)
     cam.processMouse(dx, dy);
 }
 
+static void scrollCallback(GLFWwindow*, double /*xoffset*/, double yoffset)
+{
+    if (!g_scene) return;
+    if (ImGui::GetIO().WantCaptureMouse) return;
+    Camera& cam = g_scene->getCamera();
+    if (!cam.mouseCaptured) return;
+    g_scene->onScroll((float)yoffset);
+}
+
 static void mouseButtonCallback(GLFWwindow*, int btn, int action, int /*mods*/)
 {
     if (action != GLFW_PRESS || !g_scene || ImGui::GetIO().WantCaptureMouse) return;
@@ -80,6 +89,7 @@ static void keyCallback(GLFWwindow* window, int key, int /*scancode*/,
     if (key == GLFW_KEY_1 && action == GLFW_PRESS) g_scene->selectAbility(0);
     if (key == GLFW_KEY_2 && action == GLFW_PRESS) g_scene->selectAbility(1);
     if (key == GLFW_KEY_3 && action == GLFW_PRESS) g_scene->selectAbility(2);
+    if (key == GLFW_KEY_4 && action == GLFW_PRESS) g_scene->selectAbility(3);
 }
 
 // ─── GLAD error callback ─────────────────────────────────────────────────────
@@ -139,6 +149,7 @@ int main()
     glfwSetCursorPosCallback(g_window, cursorPosCallback);
     glfwSetKeyCallback(g_window, keyCallback);
     glfwSetMouseButtonCallback(g_window, mouseButtonCallback);
+    glfwSetScrollCallback(g_window, scrollCallback);
     glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // ImGui
@@ -257,7 +268,7 @@ int main()
         }
 
         ImGui::Separator();
-        ImGui::Text("Abilities  [1/2/3]");
+        ImGui::Text("Abilities  [1/2/3/4]");
         for (int i = 0; i < scene.getAbilityCount(); ++i) {
             bool active = (i == scene.getActiveAbility());
             if (active) ImGui::PushStyleColor(ImGuiCol_Button, {0.3f, 0.6f, 1.f, 1.f});
@@ -269,6 +280,8 @@ int main()
         ImGui::Text("Q = activate  LMB = fire");
         if (scene.getAbilityCount() > 0)
             ImGui::SliderFloat("Beam Velocity", &scene.beamFireVelocity(), 1.f, 1000.f);
+
+        scene.drawActiveAbilityOverlay();
 
         ImGui::End();
 

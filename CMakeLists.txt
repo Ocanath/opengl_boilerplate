@@ -70,6 +70,7 @@ set(APP_SOURCES
     src/ability_beam.cpp
     src/ability_gravity.cpp
     src/ability_push.cpp
+    src/ability_move.cpp
 )
 
 if(WIN32)

@@ -2,6 +2,7 @@
 #include "ability_beam.h"
 #include "ability_gravity.h"
 #include "ability_push.h"
+#include "ability_move.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -62,6 +63,7 @@ Scene::Scene()
     abilities_.push_back(std::make_unique<BeamAbility>(cubeModel_.get()));
     abilities_.push_back(std::make_unique<GravitySwitchAbility>());
     abilities_.push_back(std::make_unique<PushAbility>());
+    abilities_.push_back(std::make_unique<MoveAbility>());
 
     // Start dedicated physics thread (~120 Hz)
     physicsRunning_ = true;
@@ -340,7 +342,7 @@ void Scene::firePrimary()
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, lights_
+        lastViewW_, lastViewH_, false, lights_
     };
     abilities_[activeAbility_]->onFire(ctx);
 }
@@ -351,7 +353,7 @@ void Scene::fireSecondary()
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, lights_
+        lastViewW_, lastViewH_, false, lights_
     };
     abilities_[activeAbility_]->onFireSecondary(ctx);
 }
@@ -373,6 +375,18 @@ void Scene::drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy)
         abilities_[activeAbility_]->drawHUD(dl, cx, cy);
 }
 
+void Scene::onScroll(float delta)
+{
+    if (!abilities_.empty())
+        abilities_[activeAbility_]->onScroll(delta);
+}
+
+void Scene::drawActiveAbilityOverlay()
+{
+    if (!abilities_.empty())
+        abilities_[activeAbility_]->drawOverlay();
+}
+
 void Scene::update(float dt, GLFWwindow* window)
 {
     camera_->processKeyboard(window);
@@ -391,10 +405,12 @@ void Scene::update(float dt, GLFWwindow* window)
     // Update all abilities; only active one gets qHeld=true.
     // Inactive abilities still tick so that timed effects (drag, gravity) complete.
     if (!abilities_.empty()) {
+        bool lmbHeld = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+                       && camera_->mouseCaptured;
         AbilityContext ctx {
             dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
             camPos_, camFront_, lastView_, lastProj_,
-            lastViewW_, lastViewH_, lights_
+            lastViewW_, lastViewH_, lmbHeld, lights_
         };
         bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
         for (int i = 0; i < (int)abilities_.size(); ++i)

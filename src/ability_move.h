@@ -1,0 +1,41 @@
+#pragma once
+#include "ability.h"
+#include <vector>
+#include <glm/glm.hpp>
+
+class btRigidBody;
+
+class MoveAbility : public AbilityBase {
+public:
+    const char* name() const override { return "MOVE"; }
+
+    void update(float dt, const AbilityContext& ctx, bool qHeld) override;
+    void onFire(const AbilityContext& ctx) override;
+    void onDeselect() override;
+    void onScroll(float delta) override;
+    void drawHUD(ImDrawList* dl, float cx, float cy) override;
+    void drawOverlay() override;
+
+    // PID tuning — public for overlay
+    float Kp       = 20.f;
+    float Ki       = 0.f;
+    float Kd       = 5.f;
+    float maxForce = 1000.f;
+    float grabDist = 50.f;
+
+private:
+    struct GrabbedBody {
+        btRigidBody* body;
+        glm::vec3    integral  = {};
+        glm::vec3    prevError = {};
+    };
+
+    std::vector<btRigidBody*> selected_;   // Q-selection, refreshed each frame
+    std::vector<GrabbedBody>  grabbed_;    // locked on LMB press, held while LMB held
+    bool qHeld_   = false;
+    bool lmbHeld_ = false;
+
+    static constexpr float kSelectionRadius = 100.f;
+    static constexpr float kMinDist         = 2.f;
+    static constexpr float kMaxDist         = 200.f;
+};
