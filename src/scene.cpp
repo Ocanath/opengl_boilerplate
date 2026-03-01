@@ -109,7 +109,8 @@ void Scene::buildPillars()
 {
     if (!cubeModel_) return;
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i) 
+	{
         float     a   = i * 2.f * (float)M_PI / 5.f;
         glm::vec3 pos = { 20.f * std::cos(a), 10.f, 20.f * std::sin(a) };
         floatingPillars_.emplace_back(
@@ -118,12 +119,12 @@ void Scene::buildPillars()
             pos,
             glm::vec3{2.f, 5.f, 2.f},
             glm::vec3{0.039f, 0.039f, 0.039f},
-            30.f);  // dynamic mass
+            1.f);  // dynamic mass
 
         // Float in place: disable gravity per-body, add heavy damping
         btRigidBody* b = floatingPillars_.back().getBody();
         b->setGravity({ 0.f, 0.f, 0.f });
-        b->setDamping(0.85f, 0.85f);
+        b->setDamping(0.1f, 0.1f);
     }
 }
 
@@ -144,13 +145,16 @@ void Scene::addLight(const Light& light)
         std::lock_guard<std::mutex> lk(physicsMutex_);
         lightBoxes_.emplace_back(
             dynamicsWorld_, cubeModel_.get(),
-            glm::vec3{0.1f, 0.1f, 0.1f},
+            glm::vec3{0.1f, 0.1f, 3.1f},
             light.position,
             glm::vec3{0.2f, 0.2f, 0.2f},
             light.color,
-            0.f,
+            1.f,
             glm::quat(1.f, 0.f, 0.f, 0.f),
-            true); // kinematic
+            false); // dynamic
+        btRigidBody* b = lightBoxes_.back().getBody();
+        b->setGravity({ 0.f, 0.f, 0.f });
+        b->setDamping(0.1f, 0.1f);
     }
 }
 
@@ -168,7 +172,7 @@ void Scene::update(float /*dt*/, GLFWwindow* window)
         std::lock_guard<std::mutex> lk(physicsMutex_);
         camera_->applyVelocity();
         for (size_t i = 0; i < lights_.size() && i < lightBoxes_.size(); ++i)
-            lightBoxes_[i].syncKinematic(lights_[i].position);
+            lights_[i].position = lightBoxes_[i].getPosition();
     }
 }
 
@@ -219,18 +223,11 @@ void Scene::draw(Shader& shader, int width, int height)
     for (auto& pillar : floatingPillars_)
         pillar.draw(shader);
 
-    // Light cubes (unlit / emissive) — rendered at logical light positions
-    // so ImGui drags are reflected immediately
-    if (cubeModel_) {
+    // Light cubes (unlit / emissive) — rendered via physics transform for rotation
+    if (!lightBoxes_.empty()) {
         shader.setInt("unlit", 1);
-        for (int i = 0; i < n; ++i) {
-            glm::mat4 m = glm::scale(
-                glm::translate(glm::mat4(1.f), lights_[i].position),
-                glm::vec3(0.2f));
-            shader.setMat4("model",       m);
-            shader.setVec3("objectColor", lights_[i].color);
-            cubeModel_->draw(shader);
-        }
+        for (auto& lb : lightBoxes_)
+            lb.draw(shader);
         shader.setInt("unlit", 0);
     }
 }
