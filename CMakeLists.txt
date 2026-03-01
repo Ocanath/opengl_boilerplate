@@ -69,6 +69,7 @@ set(APP_SOURCES
     src/collision_box.cpp
     src/ability_beam.cpp
     src/ability_gravity.cpp
+    src/ability_push.cpp
 )
 
 if(WIN32)

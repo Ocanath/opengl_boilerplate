@@ -44,9 +44,9 @@ void BeamAbility::update(float /*dt*/, const AbilityContext& ctx, bool qHeld)
         }
     }
 
-    // Detect Q-release edge → clean up session
-    if (prevQHeld_ && !qHeld)
-        cleanupSession(ctx);
+    // // Detect Q-release edge → clean up session
+    // if (prevQHeld_ && !qHeld)
+    //     cleanupSession(ctx);
 
     prevQHeld_ = qHeld_;
     qHeld_     = qHeld;

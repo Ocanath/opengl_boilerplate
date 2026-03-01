@@ -1,6 +1,7 @@
 #include "scene.h"
 #include "ability_beam.h"
 #include "ability_gravity.h"
+#include "ability_push.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -60,6 +61,7 @@ Scene::Scene()
     // Register abilities
     abilities_.push_back(std::make_unique<BeamAbility>(cubeModel_.get()));
     abilities_.push_back(std::make_unique<GravitySwitchAbility>());
+    abilities_.push_back(std::make_unique<PushAbility>());
 
     // Start dedicated physics thread (~120 Hz)
     physicsRunning_ = true;
@@ -394,10 +396,11 @@ void Scene::update(float dt, GLFWwindow* window)
             camPos_, camFront_, lastView_, lastProj_,
             lastViewW_, lastViewH_, lights_
         };
-        bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-                  && camera_->mouseCaptured;
+        bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
         for (int i = 0; i < (int)abilities_.size(); ++i)
-            abilities_[i]->update(dt, ctx, i == activeAbility_ ? qHeld : false);
+		{
+			abilities_[i]->update(dt, ctx, i == activeAbility_ ? qHeld : false);
+		}
     }
 }
 
