@@ -2,6 +2,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <algorithm>
 
 CollisionBox::CollisionBox(btDiscreteDynamicsWorld* world,
                            Model*      model,
@@ -34,6 +35,14 @@ CollisionBox::CollisionBox(btDiscreteDynamicsWorld* world,
         body_->setCollisionFlags(body_->getCollisionFlags() |
                                  btCollisionObject::CF_KINEMATIC_OBJECT);
         body_->setActivationState(DISABLE_DEACTIVATION);
+    }
+
+    // Enable CCD on dynamic bodies so fast-moving objects can't tunnel through walls.
+    // Threshold = smallest half-extent; swept sphere slightly smaller.
+    if (mass > 0.f) {
+        float minExtent = std::min({halfExtents.x, halfExtents.y, halfExtents.z});
+        body_->setCcdMotionThreshold(minExtent);
+        body_->setCcdSweptSphereRadius(minExtent * 0.9f);
     }
 
     world_->addRigidBody(body_);
