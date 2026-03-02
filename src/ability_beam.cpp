@@ -2,6 +2,7 @@
 #include "shader.h"
 #include "model.h"
 #include <btBulletDynamicsCommon.h>
+#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/constants.hpp>
@@ -34,13 +35,28 @@ glm::quat BeamAbility::rotateZTo(const glm::vec3& target)
 
 void BeamAbility::update(float /*dt*/, const AbilityContext& ctx, bool qHeld)
 {
-    // Sync beam lights to current physics positions
+    // Sync beam lights to current physics positions + record contacts
     if (!firedBeams_.empty()) {
         std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
         for (size_t i = 0; i < firedBeams_.size() && i < beamLightIdx_.size(); ++i) {
             size_t li = beamLightIdx_[i];
             if (li < ctx.lights.size())
                 ctx.lights[li].position = firedBeams_[i].getPosition();
+        }
+
+        // Record dynamic bodies hit by any beam
+        int nm = ctx.world->getDispatcher()->getNumManifolds();
+        for (int i = 0; i < nm; ++i) {
+            auto* m = ctx.world->getDispatcher()->getManifoldByIndexInternal(i);
+            if (m->getNumContacts() == 0) continue;
+            auto* A = static_cast<const btRigidBody*>(m->getBody0());
+            auto* B = static_cast<const btRigidBody*>(m->getBody1());
+            for (auto& beam : firedBeams_) {
+                btRigidBody* bm = beam.getBody();
+                const btRigidBody* other = (A == bm) ? B : (B == bm) ? A : nullptr;
+                if (!other || other->isStaticOrKinematicObject()) continue;
+                hitBodies_.insert(const_cast<btRigidBody*>(other));
+            }
         }
     }
 
@@ -105,6 +121,14 @@ void BeamAbility::onFire(const AbilityContext& ctx)
 void BeamAbility::onDeselect()
 {
     qHeld_ = false;
+}
+
+void BeamAbility::onKeyPress(int key, const AbilityContext& ctx)
+{
+    if (key != GLFW_KEY_K || hitBodies_.empty()) return;
+    for (btRigidBody* b : hitBodies_)
+        ctx.removeBody(b);
+    hitBodies_.clear();
 }
 
 void BeamAbility::drawHUD(ImDrawList* dl, float cx, float cy)

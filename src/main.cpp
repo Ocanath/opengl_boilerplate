@@ -201,6 +201,8 @@ int main()
 		scene.addPile({-pilecorner,pilecorner,0});
 		scene.addPile({-pilecorner,-pilecorner,0});
 	}
+	scene.addPile({0,0,3.5});
+	scene.addPile({0,0,6.5});
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");

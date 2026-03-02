@@ -2,12 +2,14 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <mutex>
+#include <functional>
 #include "light.h"
 
 class Shader;
 class Model;
 class CollisionBox;
 class btDiscreteDynamicsWorld;
+class btRigidBody;
 struct ImDrawList;
 
 // Per-frame context passed to ability update/fire
@@ -26,6 +28,7 @@ struct AbilityContext {
     bool fHeld   = false;        // true when F held and mouse is captured
 
     std::vector<Light>& lights;  // scene's main light list (abilities may append)
+    std::function<void(btRigidBody*)> removeBody;  // remove a dynamic body from the scene
 };
 
 class AbilityBase {

@@ -38,7 +38,7 @@ Scene::Scene()
     camera_ = std::make_unique<Camera>(dynamicsWorld_);
 
     buildChamber();
-    buildPillars();
+    // buildPillars();
 
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
@@ -339,10 +339,17 @@ void Scene::selectAbility(int i)
 void Scene::firePrimary()
 {
     if (!camera_->mouseCaptured || abilities_.empty()) return;
+    auto removeBodyFn = [this](btRigidBody* b) {
+        std::lock_guard<std::mutex> lk(physicsMutex_);
+        auto it = std::find_if(floatingPillars_.begin(), floatingPillars_.end(),
+                               [b](const CollisionBox& c){ return c.getBody() == b; });
+        if (it != floatingPillars_.end())
+            floatingPillars_.erase(it);
+    };
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, false, lights_
+        lastViewW_, lastViewH_, false, false, lights_, removeBodyFn
     };
     abilities_[activeAbility_]->onFire(ctx);
 }
@@ -350,10 +357,17 @@ void Scene::firePrimary()
 void Scene::fireSecondary()
 {
     if (!camera_->mouseCaptured || abilities_.empty()) return;
+    auto removeBodyFn = [this](btRigidBody* b) {
+        std::lock_guard<std::mutex> lk(physicsMutex_);
+        auto it = std::find_if(floatingPillars_.begin(), floatingPillars_.end(),
+                               [b](const CollisionBox& c){ return c.getBody() == b; });
+        if (it != floatingPillars_.end())
+            floatingPillars_.erase(it);
+    };
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, false, lights_
+        lastViewW_, lastViewH_, false, false, lights_, removeBodyFn
     };
     abilities_[activeAbility_]->onFireSecondary(ctx);
 }
@@ -361,10 +375,17 @@ void Scene::fireSecondary()
 void Scene::fireKey(int key)
 {
     if (!camera_->mouseCaptured || abilities_.empty()) return;
+    auto removeBodyFn = [this](btRigidBody* b) {
+        std::lock_guard<std::mutex> lk(physicsMutex_);
+        auto it = std::find_if(floatingPillars_.begin(), floatingPillars_.end(),
+                               [b](const CollisionBox& c){ return c.getBody() == b; });
+        if (it != floatingPillars_.end())
+            floatingPillars_.erase(it);
+    };
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, false, lights_
+        lastViewW_, lastViewH_, false, false, lights_, removeBodyFn
     };
     abilities_[activeAbility_]->onKeyPress(key, ctx);
 }
@@ -420,10 +441,17 @@ void Scene::update(float dt, GLFWwindow* window)
                        && camera_->mouseCaptured;
         bool fHeld   = (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
                        && camera_->mouseCaptured;
+        auto removeBodyFn = [this](btRigidBody* b) {
+            std::lock_guard<std::mutex> lk(physicsMutex_);
+            auto it = std::find_if(floatingPillars_.begin(), floatingPillars_.end(),
+                                   [b](const CollisionBox& c){ return c.getBody() == b; });
+            if (it != floatingPillars_.end())
+                floatingPillars_.erase(it);
+        };
         AbilityContext ctx {
             dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
             camPos_, camFront_, lastView_, lastProj_,
-            lastViewW_, lastViewH_, lmbHeld, fHeld, lights_
+            lastViewW_, lastViewH_, lmbHeld, fHeld, lights_, removeBodyFn
         };
         // bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
 		bool qHeld = true;

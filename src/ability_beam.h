@@ -2,6 +2,7 @@
 #include "ability.h"
 #include "collision_box.h"
 #include <vector>
+#include <unordered_set>
 
 class BeamAbility : public AbilityBase {
 public:
@@ -12,6 +13,7 @@ public:
     void update(float dt, const AbilityContext& ctx, bool qHeld) override;
     void onFire(const AbilityContext& ctx) override;
     void onDeselect() override;
+    void onKeyPress(int key, const AbilityContext& ctx) override;
 
     void drawHUD(ImDrawList* dl, float cx, float cy) override;
 
@@ -25,6 +27,7 @@ private:
 
     std::vector<CollisionBox> firedBeams_;
     std::vector<size_t>       beamLightIdx_;  // index into scene lights_ for each beam
+    std::unordered_set<btRigidBody*> hitBodies_;  // all dynamic bodies ever touched by a beam
 
     Model* cubeModel_;  // non-owning
 
