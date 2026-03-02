@@ -125,10 +125,11 @@ void BeamAbility::onDeselect()
 
 void BeamAbility::onKeyPress(int key, const AbilityContext& ctx)
 {
-    if (key != GLFW_KEY_K || hitBodies_.empty()) return;
+    if (key != GLFW_KEY_K) return;
     for (btRigidBody* b : hitBodies_)
         ctx.removeBody(b);
     hitBodies_.clear();
+    cleanupSession(ctx);
 }
 
 void BeamAbility::drawHUD(ImDrawList* dl, float cx, float cy)
