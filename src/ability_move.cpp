@@ -17,7 +17,8 @@ std::vector<glm::vec3> MoveAbility::fibonacciSphere(int n)
     std::vector<glm::vec3> pts;
     pts.reserve(n);
     const float golden = (float)M_PI * (3.f - std::sqrt(5.f));
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) 
+	{
         float y = 1.f - (2.f * i + 1.f) / (float)n;
         float r = std::sqrt(std::max(0.f, 1.f - y * y));
         float t = golden * (float)i;

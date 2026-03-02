@@ -193,10 +193,14 @@ int main()
 		scene.addLight({ {xl, yl, 70.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
 	}
 	scene.addPile({0,0,0});
-	scene.addPile({10,10,0});
-	scene.addPile({10,-10,0});
-	scene.addPile({-10,10,0});
-	scene.addPile({-10,-10,0});
+	float pilecorner = 10;
+	for(float pilecorner = 10; pilecorner <= 20; pilecorner+=9.9999)
+	{
+		scene.addPile({pilecorner,pilecorner,0});
+		scene.addPile({pilecorner,-pilecorner,0});
+		scene.addPile({-pilecorner,pilecorner,0});
+		scene.addPile({-pilecorner,-pilecorner,0});
+	}
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
