@@ -81,7 +81,6 @@ Scene::~Scene()
     // Remove collision bodies from world (in reverse dependency order)
     lidar_.reset();           // stop recv thread before touching physics
     abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
-    lidarBoxes_.clear();
     lightBoxes_.clear();
     floatingPillars_.clear();
     chamberWalls_.clear();
@@ -424,25 +423,18 @@ void Scene::update(float dt, GLFWwindow* window)
     }
 
     if (lidar_->pollNewFrame())
-        updateLidarBoxes();
+        updateLidarPoints();
 }
 
 // ── LiDAR point cloud ─────────────────────────────────────────────────────────
 
-void Scene::updateLidarBoxes()
+void Scene::updateLidarPoints()
 {
     auto frames = lidar_->getFrames();   // thread-safe snapshot
-    std::lock_guard<std::mutex> lk(physicsMutex_);
-    lidarBoxes_.clear();
+    lidarPoints_.clear();
     for (auto& frame : frames)
         for (auto& pt : frame)
-            lidarBoxes_.emplace_back(
-                dynamicsWorld_, cubeModel_.get(),
-                glm::vec3{0.05f},           // half-extent → 0.1 m cube
-                pt,
-                glm::vec3{0.1f},
-                glm::vec3{1.f, 0.f, 0.f},  // red
-                0.f);                       // static (mass=0)
+            lidarPoints_.push_back(pt);
 }
 
 // ── 3-pass deferred draw ──────────────────────────────────────────────────────
@@ -502,9 +494,16 @@ void Scene::draw(int width, int height)
     for (auto& pillar : floatingPillars_)
         pillar.draw(*gShader_);
 
-    // LiDAR point cloud boxes
-    for (auto& box : lidarBoxes_)
-        box.draw(*gShader_);
+    // LiDAR point cloud — direct draw, no physics
+    if (cubeModel_) {
+        gShader_->setVec3("objectColor", {1.f, 0.f, 0.f});
+        for (auto& pt : lidarPoints_) {
+            gShader_->setMat4("model",
+                glm::translate(glm::mat4(1.f), pt) *
+                glm::scale(glm::mat4(1.f), glm::vec3(0.1f)));
+            cubeModel_->draw(*gShader_);
+        }
+    }
 
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -324,7 +324,7 @@ int main()
             ImGui::TextColored({0.6f, 0.6f, 0.6f, 1.f}, "offline");
         }
 
-        ImGui::SliderInt("Buffer Depth",  &lidar.bufferDepth,       1, 10);
+        ImGui::SliderInt("Buffer Depth",  &lidar.bufferDepth,       1, 2048);
         ImGui::SliderInt("Max Pts/Frame", &lidar.maxPointsPerFrame, 100, 5000);
 
         {
@@ -332,7 +332,7 @@ int main()
             int totalPts = 0;
             for (auto& f : frames) totalPts += (int)f.size();
             ImGui::Text("Frames buffered: %d", (int)frames.size());
-            ImGui::Text("Total boxes:     %d", totalPts);
+            ImGui::Text("Total points:    %d", totalPts);
         }
 
         ImGui::End();

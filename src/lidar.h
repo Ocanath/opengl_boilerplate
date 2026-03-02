@@ -25,7 +25,7 @@ public:
     bool pollNewFrame();
 
     // Settings (read/write from main thread only, before connect)
-    int      bufferDepth       = 3;
+    int      bufferDepth       = 1024;
     int      maxPointsPerFrame = 2000;
     uint16_t port              = 2381;
 

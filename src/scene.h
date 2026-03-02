@@ -86,11 +86,11 @@ private:
     // Collision boxes
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
-    std::vector<CollisionBox> lidarBoxes_;      // rebuilt each new LiDAR frame
+    std::vector<glm::vec3> lidarPoints_;        // rebuilt each new LiDAR frame
 
     // LiDAR
     std::unique_ptr<LidarSystem> lidar_;
-    void updateLidarBoxes();
+    void updateLidarPoints();
 	
     // Ability system
     std::vector<std::unique_ptr<AbilityBase>> abilities_;
