@@ -52,6 +52,17 @@ Scene::Scene()
     lightingShader_->setInt("gNormal",   1);
     lightingShader_->setInt("gAlbedo",   2);
 
+    // Point cloud shader + VAO/VBO
+    pointCloudShader_ = std::make_unique<Shader>(
+        "shaders/pointcloud.vert", "shaders/pointcloud.frag");
+    glGenVertexArrays(1, &pointCloudVAO_);
+    glGenBuffers(1, &pointCloudVBO_);
+    glBindVertexArray(pointCloudVAO_);
+    glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+    glBindVertexArray(0);
+
     // Light SSBO
     glGenBuffers(1, &lightSSBO_);
 
@@ -97,6 +108,8 @@ Scene::~Scene()
     glDeleteBuffers(1,      &lightSSBO_);
     glDeleteVertexArrays(1, &quadVAO_);
     glDeleteBuffers(1,      &quadVBO_);
+    glDeleteVertexArrays(1, &pointCloudVAO_);
+    glDeleteBuffers(1,      &pointCloudVBO_);
 }
 
 // ── G-buffer helpers ──────────────────────────────────────────────────────────
@@ -435,6 +448,7 @@ void Scene::updateLidarPoints()
     for (auto& frame : frames)
         for (auto& pt : frame)
             lidarPoints_.push_back(pt);
+    pointCloudDirty_ = true;
 }
 
 // ── 3-pass deferred draw ──────────────────────────────────────────────────────
@@ -494,16 +508,6 @@ void Scene::draw(int width, int height)
     for (auto& pillar : floatingPillars_)
         pillar.draw(*gShader_);
 
-    // LiDAR point cloud — direct draw, no physics
-    if (cubeModel_) {
-        gShader_->setVec3("objectColor", {1.f, 0.f, 0.f});
-        for (auto& pt : lidarPoints_) {
-            gShader_->setMat4("model",
-                glm::translate(glm::mat4(1.f), pt) *
-                glm::scale(glm::mat4(0.5f), glm::vec3(0.1f)));
-            cubeModel_->draw(*gShader_);
-        }
-    }
 
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -547,6 +551,28 @@ void Scene::draw(int width, int height)
             if (auto* boxes = ab->getBoxes())
                 for (const auto& box : *boxes)
                     box.draw(*unlitShader_);
+    }
+
+    // LiDAR point cloud — single draw call
+    if (!lidarPoints_.empty()) {
+        if (pointCloudDirty_) {
+            glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
+            glBufferData(GL_ARRAY_BUFFER,
+                (GLsizeiptr)(lidarPoints_.size() * sizeof(glm::vec3)),
+                lidarPoints_.data(), GL_DYNAMIC_DRAW);
+            pointCloudCount_ = (int)lidarPoints_.size();
+            pointCloudDirty_ = false;
+        }
+        glEnable(GL_PROGRAM_POINT_SIZE);
+        pointCloudShader_->use();
+        pointCloudShader_->setMat4("view",       view);
+        pointCloudShader_->setMat4("projection", proj);
+        pointCloudShader_->setFloat("pointSize", 4.f);
+        pointCloudShader_->setVec3("color",      {1.f, 0.f, 0.f});
+        glBindVertexArray(pointCloudVAO_);
+        glDrawArrays(GL_POINTS, 0, pointCloudCount_);
+        glBindVertexArray(0);
+        glDisable(GL_PROGRAM_POINT_SIZE);
     }
 }
 

@@ -128,6 +128,13 @@ private:
     std::unique_ptr<Shader> gShader_;        // G-buffer pass
     std::unique_ptr<Shader> lightingShader_; // Lighting pass
     std::unique_ptr<Shader> unlitShader_;    // Forward unlit pass
+    std::unique_ptr<Shader> pointCloudShader_;
+
+    // Point cloud GL objects
+    unsigned int pointCloudVAO_   = 0;
+    unsigned int pointCloudVBO_   = 0;
+    int          pointCloudCount_ = 0;
+    bool         pointCloudDirty_ = false;
 
     void initGBuffer(int w, int h);
     void destroyGBuffer();
