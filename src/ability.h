@@ -23,6 +23,7 @@ struct AbilityContext {
     int       viewW, viewH;
 
     bool lmbHeld = false;        // true when LMB held and mouse is captured
+    bool fHeld   = false;        // true when F held and mouse is captured
 
     std::vector<Light>& lights;  // scene's main light list (abilities may append)
 };

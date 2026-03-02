@@ -42,7 +42,8 @@ void MoveAbility::onKeyPress(int key, const AbilityContext& ctx)
     auto dirs = fibonacciSphere((int)targets.size());
 
     std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
-    for (int i = 0; i < (int)targets.size(); ++i) {
+    for (int i = 0; i < (int)targets.size(); ++i) 
+	{
         glm::vec3 imp = dirs[i] * explodeStrength;
         targets[i]->activate(true);
         targets[i]->applyCentralImpulse({ imp.x, imp.y, imp.z });
@@ -56,21 +57,26 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
     qHeld_   = qHeld;
     lmbHeld_ = ctx.lmbHeld;
 
+    float fTarget = ctx.fHeld ? 15.f : 0.f;
+    fRadius_ += (fTarget - fRadius_) * std::min(1.f, dt * 8.f);
+
     // Release grabbed bodies when LMB released
     if (!lmbHeld_ && !grabbed_.empty())
         grabbed_.clear();
 
     // Apply PID forces to grabbed bodies
-    if (lmbHeld_ && !grabbed_.empty()) {
+    if (lmbHeld_ && !grabbed_.empty()) 
+	{
         std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
 
-        glm::vec3 targetPos = ctx.camPos + ctx.camFront * grabDist;
+        glm::vec3 baseTarget = ctx.camPos + ctx.camFront * grabDist;
 
-        for (auto& gb : grabbed_) 
+        for (auto& gb : grabbed_)
 		{
             btVector3 btBodyPos = gb.body->getWorldTransform().getOrigin();
             glm::vec3 bodyPos(btBodyPos.x(), btBodyPos.y(), btBodyPos.z());
 
+            glm::vec3 targetPos = baseTarget + gb.fibOffset * fRadius_;
             glm::vec3 error = targetPos - bodyPos;
 
             gb.integral  += error * dt;
@@ -132,8 +138,12 @@ void MoveAbility::onFire(const AbilityContext& ctx)
     grabbed_.clear();
     grabbed_.reserve(selected_.size());
     for (btRigidBody* body : selected_)
-        grabbed_.push_back({ body, {}, {} });
+        grabbed_.push_back({ body, {}, {}, {} });
     selected_.clear();
+
+    auto dirs = fibonacciSphere((int)grabbed_.size());
+    for (int i = 0; i < (int)grabbed_.size(); ++i)
+        grabbed_[i].fibOffset = dirs[i];
 }
 
 void MoveAbility::onDeselect()

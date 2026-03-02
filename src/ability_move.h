@@ -31,12 +31,14 @@ private:
         btRigidBody* body;
         glm::vec3    integral  = {};
         glm::vec3    prevError = {};
+        glm::vec3    fibOffset = {};   // unit direction on Fibonacci sphere (set at grab time)
     };
 
     std::vector<btRigidBody*> selected_;   // Q-selection, refreshed each frame
     std::vector<GrabbedBody>  grabbed_;    // locked on LMB press, held while LMB held
-    bool qHeld_   = false;
-    bool lmbHeld_ = false;
+    bool  qHeld_   = false;
+    bool  lmbHeld_ = false;
+    float fRadius_ = 0.f;       // current interpolated formation radius
 
     static constexpr float kSelectionRadius = 100.f;
     static constexpr float kMinDist         = 2.f;

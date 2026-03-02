@@ -342,7 +342,7 @@ void Scene::firePrimary()
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, lights_
+        lastViewW_, lastViewH_, false, false, lights_
     };
     abilities_[activeAbility_]->onFire(ctx);
 }
@@ -353,7 +353,7 @@ void Scene::fireSecondary()
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, lights_
+        lastViewW_, lastViewH_, false, false, lights_
     };
     abilities_[activeAbility_]->onFireSecondary(ctx);
 }
@@ -364,7 +364,7 @@ void Scene::fireKey(int key)
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, lights_
+        lastViewW_, lastViewH_, false, false, lights_
     };
     abilities_[activeAbility_]->onKeyPress(key, ctx);
 }
@@ -418,10 +418,12 @@ void Scene::update(float dt, GLFWwindow* window)
     if (!abilities_.empty()) {
         bool lmbHeld = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
                        && camera_->mouseCaptured;
+        bool fHeld   = (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+                       && camera_->mouseCaptured;
         AbilityContext ctx {
             dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
             camPos_, camFront_, lastView_, lastProj_,
-            lastViewW_, lastViewH_, lmbHeld, lights_
+            lastViewW_, lastViewH_, lmbHeld, fHeld, lights_
         };
         // bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
 		bool qHeld = true;
