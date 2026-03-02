@@ -94,7 +94,8 @@ void LidarSystem::recvLoop()
 
 void LidarSystem::decodePacket(const uint8_t* data, size_t /*len*/)
 {
-    for (int b = 0; b < 12; ++b) {
+    for (int b = 0; b < 12; ++b) 
+	{
         const uint8_t* block = data + b * 100;
         // Sanity: block sync bytes should be 0xFF, 0xEE
         if (block[0] != 0xFF || block[1] != 0xEE) continue;
@@ -102,7 +103,8 @@ void LidarSystem::decodePacket(const uint8_t* data, size_t /*len*/)
         uint16_t az_raw  = static_cast<uint16_t>(block[2] | (block[3] << 8));
         float    azimuth = static_cast<float>(az_raw); // centidegrees [0, 35999]
 
-        for (int ch = 0; ch < 32; ++ch) {
+        for (int ch = 0; ch < 32; ++ch) 
+		{
             int           laser_id = ch % 16;
             const uint8_t* chan    = block + 4 + ch * 3;
             uint16_t dist_raw = static_cast<uint16_t>(chan[0] | (chan[1] << 8));
@@ -121,7 +123,9 @@ void LidarSystem::decodePacket(const uint8_t* data, size_t /*len*/)
 
         // Frame boundary: azimuth wrapped from ~35999 back toward 0
         if (lastAzimuth_ > 18000.f && azimuth < lastAzimuth_)
-            commitPending();
+		{
+			commitPending();
+		}
         lastAzimuth_ = azimuth;
     }
 }
@@ -131,13 +135,18 @@ void LidarSystem::commitPending()
     if (pending_.empty()) return;
 
     Frame frame;
-    if ((int)pending_.size() <= maxPointsPerFrame) {
+    if ((int)pending_.size() <= maxPointsPerFrame) 
+	{
         frame = std::move(pending_);
-    } else {
+    } 
+	else 
+	{
         frame.reserve(maxPointsPerFrame);
         float stride = static_cast<float>(pending_.size()) / static_cast<float>(maxPointsPerFrame);
         for (int i = 0; i < maxPointsPerFrame; ++i)
+		{
             frame.push_back(pending_[static_cast<size_t>(i * stride)]);
+		}
     }
     pending_.clear();
 
@@ -145,7 +154,9 @@ void LidarSystem::commitPending()
         std::lock_guard<std::mutex> lk(framesMutex_);
         frames_.push_back(std::move(frame));
         while ((int)frames_.size() > bufferDepth)
+		{
             frames_.pop_front();
+		}
     }
     newFrameFlag_ = true;
 }

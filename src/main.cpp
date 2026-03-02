@@ -190,11 +190,11 @@ int main()
 		float yl = sin(fi*2*M_PI/(float)n_circlelights)*15;
 		scene.addLight({ {xl, yl, 70.f}, 1.f, {1.f, 1.f, 1.f}, 100.f });
 	}
-	scene.addPile({0,0,0});
-	scene.addPile({10,10,0});
-	scene.addPile({10,-10,0});
-	scene.addPile({-10,10,0});
-	scene.addPile({-10,-10,0});
+	// scene.addPile({0,0,0});
+	// scene.addPile({10,10,0});
+	// scene.addPile({10,-10,0});
+	// scene.addPile({-10,10,0});
+	// scene.addPile({-10,-10,0});
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
@@ -307,12 +307,16 @@ int main()
         portBuf = std::clamp(portBuf, 1, 65535);
         if (connected) ImGui::EndDisabled();
 
-        if (connected) {
+        if (connected) 
+		{
             if (ImGui::Button("Disconnect")) lidar.disconnect();
             ImGui::SameLine();
             ImGui::TextColored({0.2f, 1.f, 0.2f, 1.f}, "LIVE");
-        } else {
-            if (ImGui::Button("Connect")) {
+        } 
+		else 
+		{
+            if (ImGui::Button("Connect")) 
+			{
                 lidar.port = (uint16_t)portBuf;
                 lidar.connect(lidar.port);
             }

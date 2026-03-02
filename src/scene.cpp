@@ -39,7 +39,7 @@ Scene::Scene()
     lidar_  = std::make_unique<LidarSystem>();
 
     buildChamber();
-    buildPillars();
+    // buildPillars();
 
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
