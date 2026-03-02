@@ -38,7 +38,7 @@ Scene::Scene()
     camera_ = std::make_unique<Camera>(dynamicsWorld_);
 
     buildChamber();
-    // buildPillars();
+    buildPillars();
 
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
