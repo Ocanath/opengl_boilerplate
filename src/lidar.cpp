@@ -110,7 +110,7 @@ void LidarSystem::decodePacket(const uint8_t* data, size_t /*len*/)
             uint16_t dist_raw = static_cast<uint16_t>(chan[0] | (chan[1] << 8));
             if (dist_raw == 0) continue;
 
-            float dist_m = dist_raw * 0.002f;
+            float dist_m = dist_raw * 0.01f;
             float az_rad = glm::radians(azimuth / 100.f);
             float el_rad = glm::radians(VERT_ANGLES[laser_id]);
 

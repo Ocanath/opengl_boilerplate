@@ -500,7 +500,7 @@ void Scene::draw(int width, int height)
         for (auto& pt : lidarPoints_) {
             gShader_->setMat4("model",
                 glm::translate(glm::mat4(1.f), pt) *
-                glm::scale(glm::mat4(1.f), glm::vec3(0.1f)));
+                glm::scale(glm::mat4(0.5f), glm::vec3(0.1f)));
             cubeModel_->draw(*gShader_);
         }
     }
