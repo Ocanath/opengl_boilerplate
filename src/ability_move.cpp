@@ -1,4 +1,5 @@
 #include "ability_move.h"
+#include <GLFW/glfw3.h>
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -6,6 +7,48 @@
 #include <mutex>
 #include <cmath>
 #include <algorithm>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+std::vector<glm::vec3> MoveAbility::fibonacciSphere(int n)
+{
+    std::vector<glm::vec3> pts;
+    pts.reserve(n);
+    const float golden = (float)M_PI * (3.f - std::sqrt(5.f));
+    for (int i = 0; i < n; ++i) {
+        float y = 1.f - (2.f * i + 1.f) / (float)n;
+        float r = std::sqrt(std::max(0.f, 1.f - y * y));
+        float t = golden * (float)i;
+        pts.push_back({ r * std::cos(t), r * std::sin(t), y });
+    }
+    return pts;
+}
+
+void MoveAbility::onKeyPress(int key, const AbilityContext& ctx)
+{
+    if (key != GLFW_KEY_E) return;
+
+    std::vector<btRigidBody*> targets;
+    if (!grabbed_.empty())
+        for (auto& gb : grabbed_) targets.push_back(gb.body);
+    else if (!selected_.empty())
+        targets = selected_;
+
+    if (targets.empty()) return;
+
+    auto dirs = fibonacciSphere((int)targets.size());
+
+    std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
+    for (int i = 0; i < (int)targets.size(); ++i) {
+        glm::vec3 imp = dirs[i] * explodeStrength;
+        targets[i]->activate(true);
+        targets[i]->applyCentralImpulse({ imp.x, imp.y, imp.z });
+    }
+    grabbed_.clear();
+    selected_.clear();
+}
 
 void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 {
@@ -135,4 +178,5 @@ void MoveAbility::drawOverlay()
     ImGui::SliderFloat("Kd",        &Kd,       0.f,     50.f);
     ImGui::SliderFloat("Max Force", &maxForce, 0.f, 10000.f);
     ImGui::Text("Grab Dist: %.1f  (scroll to adjust)", grabDist);
+    ImGui::SliderFloat("Explode Str", &explodeStrength, 0.f, 5000.f);
 }

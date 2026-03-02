@@ -11,19 +11,22 @@ public:
 
     void update(float dt, const AbilityContext& ctx, bool qHeld) override;
     void onFire(const AbilityContext& ctx) override;
+    void onKeyPress(int key, const AbilityContext& ctx) override;
     void onDeselect() override;
     void onScroll(float delta) override;
     void drawHUD(ImDrawList* dl, float cx, float cy) override;
     void drawOverlay() override;
 
     // PID tuning — public for overlay
-    float Kp       = 20.f;
-    float Ki       = 0.f;
-    float Kd       = 5.f;
-    float maxForce = 1000.f;
-    float grabDist = 50.f;
+    float Kp             = 20.f;
+    float Ki             = 0.f;
+    float Kd             = 5.f;
+    float maxForce       = 1000.f;
+    float grabDist       = 50.f;
+    float explodeStrength = 300.f;
 
 private:
+    static std::vector<glm::vec3> fibonacciSphere(int n);
     struct GrabbedBody {
         btRigidBody* body;
         glm::vec3    integral  = {};

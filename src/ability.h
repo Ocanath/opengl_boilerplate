@@ -44,6 +44,9 @@ public:
     // Called when the player switches away from this ability.
     virtual void onDeselect() = 0;
 
+    // Called on key press while mouse is captured.
+    virtual void onKeyPress(int /*key*/, const AbilityContext& /*ctx*/) {}
+
     // Called on mouse scroll (delta in scroll ticks, positive = up).
     virtual void onScroll(float delta) {}
 

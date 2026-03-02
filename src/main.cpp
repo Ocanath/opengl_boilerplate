@@ -94,6 +94,9 @@ static void keyCallback(GLFWwindow* window, int key, int /*scancode*/,
     if (key == GLFW_KEY_2 && action == GLFW_PRESS) g_scene->selectAbility(1);
     if (key == GLFW_KEY_3 && action == GLFW_PRESS) g_scene->selectAbility(2);
     if (key == GLFW_KEY_4 && action == GLFW_PRESS) g_scene->selectAbility(3);
+
+    if (action == GLFW_PRESS && cam.mouseCaptured)
+        g_scene->fireKey(key);
 }
 
 // ─── GLAD error callback ─────────────────────────────────────────────────────

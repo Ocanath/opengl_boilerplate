@@ -52,6 +52,7 @@ public:
     void selectAbility(int index);   // 0-based
     void firePrimary();              // on LMB press
     void fireSecondary();            // on RMB press
+    void fireKey(int key);           // on key press (routed to active ability)
     void drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy);
     void onScroll(float delta);
     void drawActiveAbilityOverlay();

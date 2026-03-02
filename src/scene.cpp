@@ -358,6 +358,17 @@ void Scene::fireSecondary()
     abilities_[activeAbility_]->onFireSecondary(ctx);
 }
 
+void Scene::fireKey(int key)
+{
+    if (!camera_->mouseCaptured || abilities_.empty()) return;
+    AbilityContext ctx {
+        dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
+        camPos_, camFront_, lastView_, lastProj_,
+        lastViewW_, lastViewH_, false, lights_
+    };
+    abilities_[activeAbility_]->onKeyPress(key, ctx);
+}
+
 const char* Scene::getAbilityName(int i) const
 {
     if (i < 0 || i >= (int)abilities_.size()) return "";
