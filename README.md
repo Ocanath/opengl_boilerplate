@@ -13,9 +13,12 @@ system packages for OpenGL, the windowing system headers, and standard build too
 # Build tools
 sudo apt install build-essential cmake git
 
-# OpenGL (Mesa or your GPU driver must provide libGL at runtime;
-# the -dev package provides headers and the .so symlink for linking)
-sudo apt install libgl-dev
+# OpenGL — pick whichever exists on your distro version:
+#   Ubuntu 20.04+  →  libgl-dev
+#   Ubuntu 18.04 / older Debian  →  libgl1-mesa-dev
+# Both pull in mesa-common-dev (headers) and the libGL.so symlink CMake needs.
+sudo apt install libgl-dev libgl1-mesa-dev mesa-common-dev 2>/dev/null || \
+sudo apt install libgl1-mesa-dev mesa-common-dev
 
 # X11 windowing headers (required by GLFW's X11 backend)
 sudo apt install \
