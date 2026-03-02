@@ -37,7 +37,7 @@ Scene::Scene()
 
     camera_ = std::make_unique<Camera>(dynamicsWorld_);
 
-    buildChamber();
+    buildChamber(glm::vec3{200,400,50});
     buildPillars();
 
     // Create deferred rendering shaders
@@ -220,24 +220,24 @@ void Scene::physicsLoop()
 
 // ── Scene construction helpers ────────────────────────────────────────────────
 
-void Scene::buildChamber()
+void Scene::buildChamber(glm::vec3 dims)
 {
     if (!cubeModel_) return;
 
     struct WallDef { glm::vec3 pos, half, scale; };
     static const WallDef walls[] = {
         // Floor   (Z = -0.5)
-        {{ 0.f,   0.f,  -0.5f}, {50.f, 50.f, 0.5f}, {100.f, 100.f,   1.f}},
+        {{ 0.f,   0.f,  -0.5f}, {dims.x/2.f, dims.y/2.f, 0.5f}, {dims.x, dims.y,  1.f}},
         // Ceiling (Z = 100.5)
-        {{ 0.f,   0.f, 100.5f}, {50.f, 50.f, 0.5f}, {100.f, 100.f,   1.f}},
+        {{ 0.f,   0.f, dims.z + .5f}, {dims.x/2.f, dims.y/2.f, 0.5f}, {dims.x, dims.y,  1.f}},
         // -X wall
-        {{-50.5f, 0.f,  50.f},  {0.5f, 50.f, 50.f}, {  1.f, 100.f, 100.f}},
+        {{-(dims.x+1)/2.f, 0.f,  dims.z/2.f},  {0.5f, dims.y/2.f, dims.z/2.f}, {  1.f, dims.y, dims.z}},
         // +X wall
-        {{ 50.5f, 0.f,  50.f},  {0.5f, 50.f, 50.f}, {  1.f, 100.f, 100.f}},
+        {{ (dims.x+1)/2.f, 0.f,  dims.z/2.f},  {0.5f, dims.y/2.f, dims.z/2.f}, {  1.f, dims.y, dims.z}},
         // -Y wall
-        {{ 0.f, -50.5f, 50.f},  {50.f, 0.5f, 50.f}, {100.f,   1.f, 100.f}},
+        {{ 0.f, -(dims.y+1)/2.f, dims.z/2.f},  {dims.x/2.f, 0.5f, dims.z/2.f}, {dims.x,   1.f, dims.z}},
         // +Y wall
-        {{ 0.f,  50.5f, 50.f},  {50.f, 0.5f, 50.f}, {100.f,   1.f, 100.f}},
+        {{ 0.f,  (dims.y+1.f)/2, dims.z/2.f},  {dims.x/2.f, 0.5f, dims.z/2.f}, {dims.x,   1.f, dims.z}},
     };
 
     for (const auto& w : walls) {

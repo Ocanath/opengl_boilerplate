@@ -98,7 +98,7 @@ private:
     int       lastViewW_ = 0;
     int       lastViewH_ = 0;
 
-    void buildChamber();
+    void buildChamber(glm::vec3 dims);
     void buildPillars();
 
     // ── Deferred rendering ────────────────────────────────────────────────

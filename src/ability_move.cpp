@@ -57,7 +57,7 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
     qHeld_   = qHeld;
     lmbHeld_ = ctx.lmbHeld;
 
-    float fTarget = ctx.fHeld ? 15.f : 0.f;
+    float fTarget = ctx.fHeld ? sqrt((double)grabbed_.size())/2.f : 1.f;
     fRadius_ += (fTarget - fRadius_) * std::min(1.f, dt * 8.f);
 
     // Release grabbed bodies when LMB released
