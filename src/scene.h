@@ -11,6 +11,7 @@
 #include "shader.h"
 #include "collision_box.h"
 #include "ability.h"
+#include "lidar.h"
 
 struct ImDrawList;
 
@@ -36,6 +37,7 @@ public:
 
     Camera& getCamera() { return *camera_; }
     std::vector<Light>& getLights() { return lights_; }
+    LidarSystem& getLidar() { return *lidar_; }
 
     // Thread-safe camera position read
     glm::vec3 getCameraPosition();
@@ -84,6 +86,11 @@ private:
     // Collision boxes
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
+    std::vector<CollisionBox> lidarBoxes_;      // rebuilt each new LiDAR frame
+
+    // LiDAR
+    std::unique_ptr<LidarSystem> lidar_;
+    void updateLidarBoxes();
 	
     // Ability system
     std::vector<std::unique_ptr<AbilityBase>> abilities_;

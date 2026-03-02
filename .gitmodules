@@ -22,3 +22,6 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "external/velodyne_decoder"]
+	path = external/velodyne_decoder
+	url = https://github.com/valgur/velodyne_decoder

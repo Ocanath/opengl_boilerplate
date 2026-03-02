@@ -36,6 +36,7 @@ Scene::Scene()
     }
 
     camera_ = std::make_unique<Camera>(dynamicsWorld_);
+    lidar_  = std::make_unique<LidarSystem>();
 
     buildChamber();
     buildPillars();
@@ -78,7 +79,9 @@ Scene::~Scene()
         physicsThread_.join();
 
     // Remove collision bodies from world (in reverse dependency order)
+    lidar_.reset();           // stop recv thread before touching physics
     abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
+    lidarBoxes_.clear();
     lightBoxes_.clear();
     floatingPillars_.clear();
     chamberWalls_.clear();
@@ -419,6 +422,27 @@ void Scene::update(float dt, GLFWwindow* window)
 			abilities_[i]->update(dt, ctx, i == activeAbility_ ? qHeld : false);
 		}
     }
+
+    if (lidar_->pollNewFrame())
+        updateLidarBoxes();
+}
+
+// ── LiDAR point cloud ─────────────────────────────────────────────────────────
+
+void Scene::updateLidarBoxes()
+{
+    auto frames = lidar_->getFrames();   // thread-safe snapshot
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    lidarBoxes_.clear();
+    for (auto& frame : frames)
+        for (auto& pt : frame)
+            lidarBoxes_.emplace_back(
+                dynamicsWorld_, cubeModel_.get(),
+                glm::vec3{0.05f},           // half-extent → 0.1 m cube
+                pt,
+                glm::vec3{0.1f},
+                glm::vec3{1.f, 0.f, 0.f},  // red
+                0.f);                       // static (mass=0)
 }
 
 // ── 3-pass deferred draw ──────────────────────────────────────────────────────
@@ -477,6 +501,10 @@ void Scene::draw(int width, int height)
     // Floating pillars
     for (auto& pillar : floatingPillars_)
         pillar.draw(*gShader_);
+
+    // LiDAR point cloud boxes
+    for (auto& box : lidarBoxes_)
+        box.draw(*gShader_);
 
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

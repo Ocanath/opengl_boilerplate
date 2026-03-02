@@ -41,6 +41,26 @@ add_subdirectory(external/byte-stuffing)
 # dartt-protocol (provides: dartt_protocol, dartt_checksum)
 add_subdirectory(external/dartt-protocol)
 
+# velodyne_decoder — optional, not used by the app (inline VLP-16 decoder in lidar.cpp)
+# Enable with -DBUILD_VELODYNE_DECODER=ON if you want to use the library later.
+option(BUILD_VELODYNE_DECODER "Build the velodyne_decoder submodule" OFF)
+if(BUILD_VELODYNE_DECODER)
+    include(FetchContent)
+    FetchContent_Declare(yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG        0.8.0
+        OVERRIDE_FIND_PACKAGE
+    )
+    FetchContent_MakeAvailable(yaml-cpp)
+    FetchContent_Declare(Microsoft.GSL
+        GIT_REPOSITORY https://github.com/microsoft/GSL.git
+        GIT_TAG        v4.0.0
+        OVERRIDE_FIND_PACKAGE
+    )
+    FetchContent_MakeAvailable(Microsoft.GSL)
+    add_subdirectory(external/velodyne_decoder)
+endif()
+
 # Bullet3 (suppress demos/tests)
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "" FORCE)
@@ -71,6 +91,7 @@ set(APP_SOURCES
     src/ability_gravity.cpp
     src/ability_push.cpp
     src/ability_move.cpp
+    src/lidar.cpp
 )
 
 if(WIN32)

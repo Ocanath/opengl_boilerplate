@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -289,6 +290,46 @@ int main()
             ImGui::SliderFloat("Beam Velocity", &scene.beamFireVelocity(), 1.f, 1000.f);
 
         scene.drawActiveAbilityOverlay();
+
+        ImGui::End();
+
+        // ── LiDAR window ──────────────────────────────────────────────────
+        ImGui::SetNextWindowPos({(float)fbW - 260.f, 10.f}, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({250.f, 0.f},              ImGuiCond_FirstUseEver);
+        ImGui::Begin("LiDAR");
+
+        LidarSystem& lidar   = scene.getLidar();
+        bool         connected = lidar.isConnected();
+
+        static int portBuf = lidar.port;
+        if (connected) ImGui::BeginDisabled();
+        ImGui::InputInt("Port", &portBuf);
+        portBuf = std::clamp(portBuf, 1, 65535);
+        if (connected) ImGui::EndDisabled();
+
+        if (connected) {
+            if (ImGui::Button("Disconnect")) lidar.disconnect();
+            ImGui::SameLine();
+            ImGui::TextColored({0.2f, 1.f, 0.2f, 1.f}, "LIVE");
+        } else {
+            if (ImGui::Button("Connect")) {
+                lidar.port = (uint16_t)portBuf;
+                lidar.connect(lidar.port);
+            }
+            ImGui::SameLine();
+            ImGui::TextColored({0.6f, 0.6f, 0.6f, 1.f}, "offline");
+        }
+
+        ImGui::SliderInt("Buffer Depth",  &lidar.bufferDepth,       1, 10);
+        ImGui::SliderInt("Max Pts/Frame", &lidar.maxPointsPerFrame, 100, 5000);
+
+        {
+            auto frames = lidar.getFrames();
+            int totalPts = 0;
+            for (auto& f : frames) totalPts += (int)f.size();
+            ImGui::Text("Frames buffered: %d", (int)frames.size());
+            ImGui::Text("Total boxes:     %d", totalPts);
+        }
 
         ImGui::End();
 
