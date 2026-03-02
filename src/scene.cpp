@@ -37,7 +37,7 @@ Scene::Scene()
 
     camera_ = std::make_unique<Camera>(dynamicsWorld_);
 
-    buildChamber(glm::vec3{200,400,100});
+    buildChamber(glm::vec3{125,125,100});
     buildPillars();
 
     // Create deferred rendering shaders
