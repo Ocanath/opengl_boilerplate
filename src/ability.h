@@ -1,8 +1,10 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <unordered_map>
 #include "light.h"
 
 class Shader;
@@ -26,15 +28,23 @@ struct AbilityContext {
 
     bool lmbHeld = false;        // true when LMB held and mouse is captured
     bool fHeld   = false;        // true when F held and mouse is captured
+    bool rHeld   = false;        // true when R held and mouse is captured
 
     std::vector<Light>& lights;  // scene's main light list (abilities may append)
     std::function<void(btRigidBody*)> removeBody;  // remove a dynamic body from the scene
+
+    struct InitialBodyState { glm::vec3 pos; glm::quat rot; };
+    const std::unordered_map<btRigidBody*, InitialBodyState>* initialBodyStates = nullptr;
 };
 
 class AbilityBase {
 public:
     virtual ~AbilityBase() = default;
     virtual const char* name() const = 0;
+
+    // Selection tuning — public for UI overlay
+    float selectionRadius = 100.f;
+    bool  selectAll       = false;
 
     // Called every frame. qHeld = Q is currently pressed.
     virtual void update(float dt, const AbilityContext& ctx, bool qHeld) = 0;

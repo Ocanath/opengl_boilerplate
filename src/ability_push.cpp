@@ -24,6 +24,11 @@ void PushAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
         btRigidBody* body = btRigidBody::upcast(obj);
         if (!body) continue;
 
+        if (selectAll) {
+            selected_.push_back(body);
+            continue;
+        }
+
         btVector3 btPos = obj->getWorldTransform().getOrigin();
         glm::vec4 clip  = ctx.proj * ctx.view
                           * glm::vec4(btPos.x(), btPos.y(), btPos.z(), 1.f);
@@ -39,7 +44,7 @@ void PushAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
         float dx = screenX - (float)ctx.viewW * 0.5f;
         float dy = screenY - (float)ctx.viewH * 0.5f;
 
-        if (std::sqrt(dx * dx + dy * dy) <= kSelectionRadius)
+        if (std::sqrt(dx * dx + dy * dy) <= selectionRadius)
             selected_.push_back(body);
     }
 }
@@ -88,9 +93,9 @@ void PushAbility::drawHUD(ImDrawList* dl, float cx, float cy)
     ImU32 colour = selected_.empty() ? IM_COL32(180, 180, 180, 150)
                                      : IM_COL32(50, 220, 50, 200);
 
-    dl->AddCircle({cx, cy}, kSelectionRadius, colour, 32, 2.f);
+    dl->AddCircle({cx, cy}, selectionRadius, colour, 32, 2.f);
 
     char buf[32];
     std::snprintf(buf, sizeof(buf), "x%d", (int)selected_.size());
-    dl->AddText({cx - 10.f, cy + kSelectionRadius + 5.f}, colour, buf);
+    dl->AddText({cx - 10.f, cy + selectionRadius + 5.f}, colour, buf);
 }

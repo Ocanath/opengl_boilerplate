@@ -19,6 +19,4 @@ public:
 private:
     std::vector<btRigidBody*> selected_;
     bool qHeld_ = false;
-
-    static constexpr float kSelectionRadius = 100.f;
 };

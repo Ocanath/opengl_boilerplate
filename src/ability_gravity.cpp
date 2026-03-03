@@ -100,6 +100,11 @@ void GravitySwitchAbility::update(float dt, const AbilityContext& ctx, bool qHel
         btRigidBody* body = btRigidBody::upcast(obj);
         if (!body) continue;
 
+        if (selectAll) {
+            selected_.push_back(body);
+            continue;
+        }
+
         btVector3 btPos = obj->getWorldTransform().getOrigin();
         glm::vec4 clip  = ctx.proj * ctx.view
                           * glm::vec4(btPos.x(), btPos.y(), btPos.z(), 1.f);
@@ -115,7 +120,7 @@ void GravitySwitchAbility::update(float dt, const AbilityContext& ctx, bool qHel
         float dx = screenX - (float)ctx.viewW * 0.5f;
         float dy = screenY - (float)ctx.viewH * 0.5f;
 
-        if (std::sqrt(dx * dx + dy * dy) <= 100.f)
+        if (std::sqrt(dx * dx + dy * dy) <= selectionRadius)
             selected_.push_back(body);
     }
 }

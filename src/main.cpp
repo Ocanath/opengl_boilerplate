@@ -203,6 +203,7 @@ int main()
 	}
 	scene.addPile({0,0,3.5});
 	scene.addPile({0,0,6.5});
+	scene.snapshotInitialBodyStates();
 
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
@@ -296,6 +297,18 @@ int main()
         ImGui::Text("Q = activate  LMB = fire");
         if (scene.getAbilityCount() > 0)
             ImGui::SliderFloat("Beam Velocity", &scene.beamFireVelocity(), 1.f, 1000.f);
+
+        if (auto* ab = scene.getActiveAbilityPtr()) {
+            ImGui::SliderFloat("Selection Radius", &ab->selectionRadius, 1.f, 500.f);
+        }
+        if (scene.getActiveAbility() >= 1) {
+            if (auto* ab = scene.getActiveAbilityPtr()) {
+                int mode = ab->selectAll ? 1 : 0;
+                ImGui::RadioButton("Radius##sel", &mode, 0); ImGui::SameLine();
+                ImGui::RadioButton("All##sel",    &mode, 1);
+                ab->selectAll = (mode == 1);
+            }
+        }
 
         scene.drawActiveAbilityOverlay();
 

@@ -5,6 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <unordered_map>
 #include "model.h"
 #include "camera.h"
 #include "light.h"
@@ -60,6 +61,8 @@ public:
     int         getAbilityCount()  const { return (int)abilities_.size(); }
     const char* getAbilityName(int i) const;
     float&      beamFireVelocity();      // ref to BeamAbility::fireVelocity for UI
+    AbilityBase* getActiveAbilityPtr();
+    void snapshotInitialBodyStates();
     std::unique_ptr<Model>  cubeModel_;   // shared unit cube for all box meshes
 	btDiscreteDynamicsWorld*             dynamicsWorld_ = nullptr;
 
@@ -89,6 +92,7 @@ private:
     // Ability system
     std::vector<std::unique_ptr<AbilityBase>> abilities_;
     int activeAbility_ = 0;
+    std::unordered_map<btRigidBody*, AbilityContext::InitialBodyState> initialBodyStates_;
 
     // Per-frame camera snapshot (set in update, consumed by ability system)
     glm::vec3 camPos_    = {};

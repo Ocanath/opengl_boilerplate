@@ -32,6 +32,8 @@ public:
     glm::vec3 getPosition()    const;
     glm::mat4 getModelMatrix() const;
     btRigidBody* getBody() const { return body_; }
+    glm::vec3 getInitialPosition() const { return initialPos_; }
+    glm::quat getInitialRotation() const { return initialRot_; }
 
 private:
     btDiscreteDynamicsWorld* world_  = nullptr;
@@ -41,4 +43,6 @@ private:
     Model*                   model_  = nullptr;
     glm::vec3                visualScale_;
     glm::vec3                color_;
+    glm::vec3                initialPos_;
+    glm::quat                initialRot_;
 };

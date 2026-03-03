@@ -13,7 +13,8 @@ CollisionBox::CollisionBox(btDiscreteDynamicsWorld* world,
                            float       mass,
                            glm::quat   rotation,
                            bool        kinematic)
-    : world_(world), model_(model), visualScale_(visualScale), color_(color)
+    : world_(world), model_(model), visualScale_(visualScale), color_(color),
+      initialPos_(position), initialRot_(rotation)
 {
     shape_ = new btBoxShape({ halfExtents.x, halfExtents.y, halfExtents.z });
 
@@ -64,7 +65,8 @@ CollisionBox::~CollisionBox()
 
 CollisionBox::CollisionBox(CollisionBox&& o) noexcept
     : world_(o.world_), shape_(o.shape_), body_(o.body_), motion_(o.motion_),
-      model_(o.model_), visualScale_(o.visualScale_), color_(o.color_)
+      model_(o.model_), visualScale_(o.visualScale_), color_(o.color_),
+      initialPos_(o.initialPos_), initialRot_(o.initialRot_)
 {
     o.world_  = nullptr;
     o.shape_  = nullptr;
@@ -89,6 +91,8 @@ CollisionBox& CollisionBox::operator=(CollisionBox&& o) noexcept
         model_       = o.model_;
         visualScale_ = o.visualScale_;
         color_       = o.color_;
+        initialPos_  = o.initialPos_;
+        initialRot_  = o.initialRot_;
 
         o.world_  = nullptr;
         o.shape_  = nullptr;

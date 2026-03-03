@@ -56,8 +56,9 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 {
     qHeld_   = qHeld;
     lmbHeld_ = ctx.lmbHeld;
+    rHeld_   = ctx.rHeld;
 
-    float fTarget = ctx.fHeld ? sqrt((double)grabbed_.size())/2.f : 1.f;
+    float fTarget = ctx.fHeld ? sqrt((double)grabbed_.size()) : 1.f;
     fRadius_ += (fTarget - fRadius_) * std::min(1.f, dt * 8.f);
 
     // Release grabbed bodies when LMB released
@@ -76,12 +77,19 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
             btVector3 btBodyPos = gb.body->getWorldTransform().getOrigin();
             glm::vec3 bodyPos(btBodyPos.x(), btBodyPos.y(), btBodyPos.z());
 
-            glm::vec3 targetPos = baseTarget + gb.fibOffset * fRadius_;
+            glm::vec3 targetPos;
+            if (ctx.rHeld && ctx.initialBodyStates) {
+                auto it = ctx.initialBodyStates->find(gb.body);
+                if (it != ctx.initialBodyStates->end())
+                    targetPos = it->second.pos;
+                else
+                    targetPos = baseTarget + gb.fibOffset * fRadius_;
+            } else {
+                targetPos = baseTarget + gb.fibOffset * fRadius_;
+            }
             glm::vec3 error = targetPos - bodyPos;
 
             gb.integral  += error * dt;
-            // glm::vec3 derivative = (dt > 0.f) ? (error - gb.prevError) / dt
-            //                                    : glm::vec3(0.f);
             gb.prevError  = error;
 
 			btVector3 velocity = gb.body->getLinearVelocity();
@@ -94,10 +102,31 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 
             gb.body->activate(true);
             gb.body->applyCentralForce({ force.x, force.y, force.z });
+
+            // Orientation restore — only when R is held
+            if (ctx.rHeld && ctx.initialBodyStates) 
+			{
+                auto it = ctx.initialBodyStates->find(gb.body);
+                if (it != ctx.initialBodyStates->end()) 
+				{
+                    const glm::quat& initRot = it->second.rot;
+                    btQuaternion qCurrent = gb.body->getWorldTransform().getRotation();
+                    btQuaternion qTarget(initRot.x, initRot.y, initRot.z, initRot.w);
+                    btQuaternion qError = qTarget * qCurrent.inverse();
+                    qError.normalize();
+                    if (qError.w() < 0.f)
+                        qError = btQuaternion(-qError.x(), -qError.y(), -qError.z(), -qError.w());
+                    float angle = 2.f * std::acos(std::min(1.f, qError.w()));
+                    btVector3 axis = (angle > 1e-5f) ? qError.getAxis() : btVector3(0, 0, 1);
+                    btVector3 angVel = gb.body->getAngularVelocity();
+                    btVector3 torque = axis * angle * KpRot - angVel * KdRot;
+                    // gb.body->applyTorque(torque);
+                }
+            }
         }
     }
 
-    // Selection mode: collect bodies within kSelectionRadius of screen centre
+    // Selection mode: collect bodies within selectionRadius of screen centre (or all)
     selected_.clear();
     if (qHeld && !lmbHeld_) {
         std::lock_guard<std::mutex> lk(*ctx.physicsMutex);
@@ -109,6 +138,11 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 
             btRigidBody* body = btRigidBody::upcast(obj);
             if (!body) continue;
+
+            if (selectAll) {
+                selected_.push_back(body);
+                continue;
+            }
 
             btVector3 btPos = obj->getWorldTransform().getOrigin();
             glm::vec4 clip  = ctx.proj * ctx.view
@@ -125,7 +159,7 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
             float dx = screenX - (float)ctx.viewW * 0.5f;
             float dy = screenY - (float)ctx.viewH * 0.5f;
 
-            if (std::sqrt(dx * dx + dy * dy) <= kSelectionRadius)
+            if (std::sqrt(dx * dx + dy * dy) <= selectionRadius)
                 selected_.push_back(body);
         }
     }
@@ -165,18 +199,18 @@ void MoveAbility::drawHUD(ImDrawList* dl, float cx, float cy)
     if (lmbHeld_ && !grabbed_.empty()) {
         // Grabbing — orange ring + count
         ImU32 col = IM_COL32(255, 160, 0, 220);
-        dl->AddCircle({cx, cy}, kSelectionRadius, col, 32, 2.5f);
+        dl->AddCircle({cx, cy}, selectionRadius, col, 32, 2.5f);
         char buf[32];
         std::snprintf(buf, sizeof(buf), "MOVE [%d]", (int)grabbed_.size());
-        dl->AddText({cx - 30.f, cy + kSelectionRadius + 5.f}, col, buf);
+        dl->AddText({cx - 30.f, cy + selectionRadius + 5.f}, col, buf);
     } else if (qHeld_) {
         // Selection mode — grey or green ring
         ImU32 col = selected_.empty() ? IM_COL32(180, 180, 180, 150)
                                       : IM_COL32(50, 220, 50, 200);
-        dl->AddCircle({cx, cy}, kSelectionRadius, col, 32, 2.f);
+        dl->AddCircle({cx, cy}, selectionRadius, col, 32, 2.f);
         char buf[32];
         std::snprintf(buf, sizeof(buf), "x%d", (int)selected_.size());
-        dl->AddText({cx - 10.f, cy + kSelectionRadius + 5.f}, col, buf);
+        dl->AddText({cx - 10.f, cy + selectionRadius + 5.f}, col, buf);
     }
 }
 
@@ -190,4 +224,7 @@ void MoveAbility::drawOverlay()
     ImGui::SliderFloat("Max Force", &maxForce, 0.f, 10000.f);
     ImGui::Text("Grab Dist: %.1f  (scroll to adjust)", grabDist);
     ImGui::SliderFloat("Explode Str", &explodeStrength, 0.f, 5000.f);
+    ImGui::Text("Restore (hold R)");
+    ImGui::SliderFloat("KpRot", &KpRot, 0.f, 100.f);
+    ImGui::SliderFloat("KdRot", &KdRot, 0.f,  50.f);
 }

@@ -349,7 +349,7 @@ void Scene::firePrimary()
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, false, lights_, removeBodyFn
+        lastViewW_, lastViewH_, false, false, false, lights_, removeBodyFn, &initialBodyStates_
     };
     abilities_[activeAbility_]->onFire(ctx);
 }
@@ -367,7 +367,7 @@ void Scene::fireSecondary()
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, false, lights_, removeBodyFn
+        lastViewW_, lastViewH_, false, false, false, lights_, removeBodyFn, &initialBodyStates_
     };
     abilities_[activeAbility_]->onFireSecondary(ctx);
 }
@@ -385,7 +385,7 @@ void Scene::fireKey(int key)
     AbilityContext ctx {
         dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
         camPos_, camFront_, lastView_, lastProj_,
-        lastViewW_, lastViewH_, false, false, lights_, removeBodyFn
+        lastViewW_, lastViewH_, false, false, false, lights_, removeBodyFn, &initialBodyStates_
     };
     abilities_[activeAbility_]->onKeyPress(key, ctx);
 }
@@ -399,6 +399,22 @@ const char* Scene::getAbilityName(int i) const
 float& Scene::beamFireVelocity()
 {
     return static_cast<BeamAbility*>(abilities_[0].get())->fireVelocity;
+}
+
+AbilityBase* Scene::getActiveAbilityPtr()
+{
+    if (abilities_.empty()) return nullptr;
+    return abilities_[activeAbility_].get();
+}
+
+void Scene::snapshotInitialBodyStates()
+{
+    for (auto& cb : floatingPillars_) {
+        initialBodyStates_[cb.getBody()] = {
+            cb.getInitialPosition(),
+            cb.getInitialRotation()
+        };
+    }
 }
 
 void Scene::drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy)
@@ -441,6 +457,8 @@ void Scene::update(float dt, GLFWwindow* window)
                        && camera_->mouseCaptured;
         bool fHeld   = (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
                        && camera_->mouseCaptured;
+        bool rHeld   = (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+                       && camera_->mouseCaptured;
         auto removeBodyFn = [this](btRigidBody* b) {
             std::lock_guard<std::mutex> lk(physicsMutex_);
             auto it = std::find_if(floatingPillars_.begin(), floatingPillars_.end(),
@@ -451,7 +469,7 @@ void Scene::update(float dt, GLFWwindow* window)
         AbilityContext ctx {
             dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
             camPos_, camFront_, lastView_, lastProj_,
-            lastViewW_, lastViewH_, lmbHeld, fHeld, lights_, removeBodyFn
+            lastViewW_, lastViewH_, lmbHeld, fHeld, rHeld, lights_, removeBodyFn, &initialBodyStates_
         };
         // bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
 		bool qHeld = true;

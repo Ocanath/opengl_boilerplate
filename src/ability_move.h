@@ -24,6 +24,8 @@ public:
     float maxForce       = 1000.f;
     float grabDist       = 50.f;
     float explodeStrength = 300.f;
+    float KpRot          = 10.f;
+    float KdRot          =  2.f;
 
 private:
     static std::vector<glm::vec3> fibonacciSphere(int n);
@@ -38,9 +40,9 @@ private:
     std::vector<GrabbedBody>  grabbed_;    // locked on LMB press, held while LMB held
     bool  qHeld_   = false;
     bool  lmbHeld_ = false;
+    bool  rHeld_   = false;
     float fRadius_ = 0.f;       // current interpolated formation radius
 
-    static constexpr float kSelectionRadius = 100.f;
-    static constexpr float kMinDist         = 2.f;
-    static constexpr float kMaxDist         = 200.f;
+    static constexpr float kMinDist = 2.f;
+    static constexpr float kMaxDist = 200.f;
 };
