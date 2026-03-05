@@ -3,6 +3,18 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <algorithm>
+#include <unordered_map>
+
+static btBoxShape* getCachedShape(glm::vec3 he)
+{
+    static std::unordered_map<size_t, btBoxShape*> cache;
+    size_t h = std::hash<float>{}(he.x);
+    h ^= std::hash<float>{}(he.y) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    h ^= std::hash<float>{}(he.z) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    auto it = cache.find(h);
+    if (it != cache.end()) return it->second;
+    return cache[h] = new btBoxShape({ he.x, he.y, he.z });
+}
 
 CollisionBox::CollisionBox(btDiscreteDynamicsWorld* world,
                            Model*      model,
@@ -16,7 +28,7 @@ CollisionBox::CollisionBox(btDiscreteDynamicsWorld* world,
     : world_(world), model_(model), visualScale_(visualScale), color_(color),
       initialPos_(position), initialRot_(rotation)
 {
-    shape_ = new btBoxShape({ halfExtents.x, halfExtents.y, halfExtents.z });
+    shape_ = getCachedShape(halfExtents);
 
     btTransform t;
     t.setIdentity();
@@ -58,8 +70,7 @@ CollisionBox::~CollisionBox()
     }
     delete motion_;
     motion_ = nullptr;
-    delete shape_;
-    shape_  = nullptr;
+    shape_  = nullptr;  // owned by shape cache, not deleted here
     world_  = nullptr;
 }
 
@@ -82,7 +93,7 @@ CollisionBox& CollisionBox::operator=(CollisionBox&& o) noexcept
             delete body_;
         }
         delete motion_;
-        delete shape_;
+        // shape_ owned by cache, not deleted here
 
         world_       = o.world_;
         shape_       = o.shape_;

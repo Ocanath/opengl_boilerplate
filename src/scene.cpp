@@ -292,7 +292,7 @@ void Scene::addLight(const Light& light)
         std::lock_guard<std::mutex> lk(physicsMutex_);
         lightBoxes_.emplace_back(
             dynamicsWorld_, cubeModel_.get(),
-            glm::vec3{0.1f, 0.1f, 3.1f},
+            glm::vec3{0.1f, 0.1f, 0.1f},
             light.position,
             glm::vec3{0.2f, 0.2f, 0.2f},
             light.color,
