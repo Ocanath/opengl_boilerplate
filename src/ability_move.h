@@ -26,6 +26,7 @@ public:
     float explodeStrength = 300.f;
     float KpRot          = 10.f;
     float KdRot          =  2.f;
+    float maxTorque      = 500.f;
 
 private:
     static std::vector<glm::vec3> fibonacciSphere(int n);

@@ -35,6 +35,7 @@ public:
     float zMoveSpeed     = 6.f;   // Z speed
 
     void setGravity(bool enabled);
+    btRigidBody* getBody() const { return body_; }
 
     void saveToFile(const std::string& path) const;
     void loadFromFile(const std::string& path);

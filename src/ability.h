@@ -35,6 +35,7 @@ struct AbilityContext {
 
     struct InitialBodyState { glm::vec3 pos; glm::quat rot; };
     const std::unordered_map<btRigidBody*, InitialBodyState>* initialBodyStates = nullptr;
+    btRigidBody* cameraBody = nullptr;  // excluded from selection
 };
 
 class AbilityBase {

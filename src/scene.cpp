@@ -415,6 +415,12 @@ void Scene::snapshotInitialBodyStates()
             cb.getInitialRotation()
         };
     }
+    for (auto& cb : lightBoxes_) {
+        initialBodyStates_[cb.getBody()] = {
+            cb.getInitialPosition(),
+            cb.getInitialRotation()
+        };
+    }
 }
 
 void Scene::drawActiveAbilityHUD(ImDrawList* dl, float cx, float cy)
@@ -469,7 +475,8 @@ void Scene::update(float dt, GLFWwindow* window)
         AbilityContext ctx {
             dynamicsWorld_, &physicsMutex_, cubeModel_.get(),
             camPos_, camFront_, lastView_, lastProj_,
-            lastViewW_, lastViewH_, lmbHeld, fHeld, rHeld, lights_, removeBodyFn, &initialBodyStates_
+            lastViewW_, lastViewH_, lmbHeld, fHeld, rHeld, lights_, removeBodyFn, &initialBodyStates_,
+            camera_->getBody()
         };
         // bool qHeld = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) && camera_->mouseCaptured;
 		bool qHeld = true;

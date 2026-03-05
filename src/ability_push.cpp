@@ -23,6 +23,7 @@ void PushAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 
         btRigidBody* body = btRigidBody::upcast(obj);
         if (!body) continue;
+        if (body == ctx.cameraBody) continue;
 
         if (selectAll) {
             selected_.push_back(body);

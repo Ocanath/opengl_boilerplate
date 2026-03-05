@@ -120,7 +120,10 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
                     btVector3 axis = (angle > 1e-5f) ? qError.getAxis() : btVector3(0, 0, 1);
                     btVector3 angVel = gb.body->getAngularVelocity();
                     btVector3 torque = axis * angle * KpRot - angVel * KdRot;
-                    // gb.body->applyTorque(torque);
+                    float torqueMag = torque.length();
+                    if (torqueMag > maxTorque && torqueMag > 0.f)
+                        torque *= maxTorque / torqueMag;
+                    gb.body->applyTorque(torque);
                 }
             }
         }
@@ -138,6 +141,7 @@ void MoveAbility::update(float dt, const AbilityContext& ctx, bool qHeld)
 
             btRigidBody* body = btRigidBody::upcast(obj);
             if (!body) continue;
+            if (body == ctx.cameraBody) continue;
 
             if (selectAll) {
                 selected_.push_back(body);
@@ -227,4 +231,5 @@ void MoveAbility::drawOverlay()
     ImGui::Text("Restore (hold R)");
     ImGui::SliderFloat("KpRot", &KpRot, 0.f, 100.f);
     ImGui::SliderFloat("KdRot", &KdRot, 0.f,  50.f);
+    ImGui::InputScalar("Max Torque", ImGuiDataType_Float, &maxTorque);
 }
