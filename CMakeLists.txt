@@ -41,6 +41,9 @@ add_subdirectory(external/byte-stuffing)
 # dartt-protocol (provides: dartt_protocol, dartt_checksum)
 add_subdirectory(external/dartt-protocol)
 
+# Eigen (header-only linear algebra)
+add_subdirectory(external/eigen)
+
 # velodyne_decoder — optional, not used by the app (inline VLP-16 decoder in lidar.cpp)
 # Enable with -DBUILD_VELODYNE_DECODER=ON if you want to use the library later.
 option(BUILD_VELODYNE_DECODER "Build the velodyne_decoder submodule" OFF)
@@ -105,7 +108,7 @@ endif()
 
 target_link_libraries(${APP_TARGET}
     glad OpenGL::GL glfw glm::glm imgui assimp
-    cobs PPP dartt_protocol dartt_checksum
+    cobs PPP dartt_protocol dartt_checksum     Eigen3::Eigen
     -Wl,--start-group
         LinearMath Bullet3Common BulletInverseDynamics
         BulletCollision BulletDynamics

@@ -25,3 +25,6 @@
 [submodule "external/velodyne_decoder"]
 	path = external/velodyne_decoder
 	url = https://github.com/valgur/velodyne_decoder
+[submodule "external/eigen"]
+	path = external/eigen
+	url = https://gitlab.com/libeigen/eigen.git
