@@ -446,8 +446,7 @@ void Scene::updateLidarPoints()
     auto frames = lidar_->getFrames();   // thread-safe snapshot
     lidarPoints_.clear();
     for (auto& frame : frames)
-        for (auto& pt : frame)
-            lidarPoints_.push_back(pt);
+        lidarPoints_.insert(lidarPoints_.end(), frame.begin(), frame.end());
     pointCloudDirty_ = true;
 }
 

@@ -108,7 +108,7 @@ endif()
 
 target_link_libraries(${APP_TARGET}
     glad OpenGL::GL glfw glm::glm imgui assimp
-    cobs PPP dartt_protocol dartt_checksum     Eigen3::Eigen
+    cobs PPP dartt_protocol dartt_checksum
     -Wl,--start-group
         LinearMath Bullet3Common BulletInverseDynamics
         BulletCollision BulletDynamics
