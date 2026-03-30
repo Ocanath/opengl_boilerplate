@@ -123,6 +123,11 @@ std::vector<LidarSystem::LidarPoint> LidarSystem::decodeModifiedPacket(const uin
                 dist_m * cosf(el_rad) * cosf(az_rad),
                 dist_m * sinf(el_rad)
             );
+
+			float motor_rad = ((float)motor_angle)/((float)(1<<14));
+			float motor_deg = motor_rad*180.f/M_PI;
+			printf("%f\n", motor_deg);
+
             lp.motor_angle  = motor_angle;
             lp.azimuth_cdeg = az_raw;
             points.push_back(lp);
@@ -140,7 +145,9 @@ void LidarSystem::recvLoop()
     {
         ssize_t received = ::recvfrom(socket_, buf, sizeof(buf), 0, nullptr, nullptr);
         if (received == 1242)
-            receivePacket(buf, static_cast<size_t>(received));
+        {
+			receivePacket(buf, static_cast<size_t>(received));
+		}
         // On timeout (EAGAIN/EWOULDBLOCK), received < 0 — just loop and re-check running_
     }
 }
@@ -168,6 +175,24 @@ void LidarSystem::receivePacket(const uint8_t* data, size_t /*len*/)
         uint16_t az_raw        = static_cast<uint16_t>(block[2] | (block[3] << 8));
         float    azimuth_block = static_cast<float>(az_raw);
         float    az_rad        = (az_raw / 100.f) * static_cast<float>(M_PI) / 180.f;
+
+		uint32_t raw = 0;
+		raw = (uint32_t)(block[4]);
+		raw |= (((uint32_t)(block[5])) << 8);
+		raw |= (((uint32_t)(block[6])) << 16);
+		int32_t motor_angle;
+		if(raw & 0x800000)	//sign extend
+		{
+			motor_angle = raw | 0xFF000000;
+		}
+		else
+		{
+			motor_angle = raw;
+		}
+
+		float motor_rad = ((float)motor_angle)/((float)(1<<14));
+		float motor_deg = motor_rad*180.f/M_PI;
+		printf("%f\n", motor_deg);
 
         for (int ch = 0; ch < 32; ++ch)
         {
