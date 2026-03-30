@@ -77,6 +77,16 @@ bool LidarSystem::pollNewFrame()
     return newFrameFlag_.exchange(false);
 }
 
+std::vector<LidarSystem::Frame> LidarSystem::drainFrames()
+{
+    std::lock_guard<std::mutex> lk(framesMutex_);
+    std::vector<Frame> result(
+        std::make_move_iterator(frames_.begin()),
+        std::make_move_iterator(frames_.end()));
+    frames_.clear();
+    return result;
+}
+
 // ── Decode a 1242-byte modified packet to LidarPoints ────────────────────────
 
 std::vector<LidarSystem::LidarPoint> LidarSystem::decodeModifiedPacket(const uint8_t* data, size_t len)
@@ -176,10 +186,11 @@ void LidarSystem::receivePacket(const uint8_t* data, size_t /*len*/)
             ));
         }
 
-        if (lastAzimuth_ > 18000.f && azimuth_block < lastAzimuth_)
-            commitPending();
         lastAzimuth_ = azimuth_block;
     }
+
+    // Commit every packet for minimum latency — ~380 points every ~1.3 ms
+    commitPending();
 }
 
 void LidarSystem::commitPending()

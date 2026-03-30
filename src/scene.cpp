@@ -59,6 +59,8 @@ Scene::Scene()
     glGenBuffers(1, &pointCloudVBO_);
     glBindVertexArray(pointCloudVAO_);
     glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
+    glBufferData(GL_ARRAY_BUFFER,
+        (GLsizeiptr)(MAX_GPU_POINTS * sizeof(glm::vec3)), nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
     glBindVertexArray(0);
@@ -443,11 +445,39 @@ void Scene::update(float dt, GLFWwindow* window)
 
 void Scene::updateLidarPoints()
 {
-    auto frames = lidar_->getFrames();   // thread-safe snapshot
-    lidarPoints_.clear();
+    auto frames = lidar_->drainFrames();
+    if (frames.empty()) return;
+
+    glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
     for (auto& frame : frames)
-        lidarPoints_.insert(lidarPoints_.end(), frame.begin(), frame.end());
-    pointCloudDirty_ = true;
+    {
+        int n = (int)frame.size();
+        if (n == 0) continue;
+
+        int spaceToEnd = MAX_GPU_POINTS - gpuWriteHead_;
+        if (n <= spaceToEnd)
+        {
+            glBufferSubData(GL_ARRAY_BUFFER,
+                (GLintptr)(gpuWriteHead_ * (int)sizeof(glm::vec3)),
+                (GLsizeiptr)(n * (int)sizeof(glm::vec3)),
+                frame.data());
+        }
+        else
+        {
+            // Frame straddles the wrap point — split into two uploads
+            glBufferSubData(GL_ARRAY_BUFFER,
+                (GLintptr)(gpuWriteHead_ * (int)sizeof(glm::vec3)),
+                (GLsizeiptr)(spaceToEnd * (int)sizeof(glm::vec3)),
+                frame.data());
+            glBufferSubData(GL_ARRAY_BUFFER,
+                0,
+                (GLsizeiptr)((n - spaceToEnd) * (int)sizeof(glm::vec3)),
+                frame.data() + spaceToEnd);
+        }
+        gpuWriteHead_ = (gpuWriteHead_ + n) % MAX_GPU_POINTS;
+        gpuTotalPts_  = std::min(gpuTotalPts_ + n, MAX_GPU_POINTS);
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 // ── 3-pass deferred draw ──────────────────────────────────────────────────────
@@ -552,16 +582,8 @@ void Scene::draw(int width, int height)
                     box.draw(*unlitShader_);
     }
 
-    // LiDAR point cloud — single draw call
-    if (!lidarPoints_.empty()) {
-        if (pointCloudDirty_) {
-            glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
-            glBufferData(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(lidarPoints_.size() * sizeof(glm::vec3)),
-                lidarPoints_.data(), GL_DYNAMIC_DRAW);
-            pointCloudCount_ = (int)lidarPoints_.size();
-            pointCloudDirty_ = false;
-        }
+    // LiDAR point cloud — GPU ring buffer, one draw call
+    if (gpuTotalPts_ > 0) {
         glEnable(GL_PROGRAM_POINT_SIZE);
         pointCloudShader_->use();
         pointCloudShader_->setMat4("view",       view);
@@ -569,7 +591,7 @@ void Scene::draw(int width, int height)
         pointCloudShader_->setFloat("pointSize", 4.f);
         pointCloudShader_->setVec3("color",      {1.f, 0.f, 0.f});
         glBindVertexArray(pointCloudVAO_);
-        glDrawArrays(GL_POINTS, 0, pointCloudCount_);
+        glDrawArrays(GL_POINTS, 0, gpuTotalPts_);
         glBindVertexArray(0);
         glDisable(GL_PROGRAM_POINT_SIZE);
     }

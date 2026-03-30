@@ -27,8 +27,12 @@ public:
     // Decode a 1242-byte modified packet to LidarPoints (includes motor_angle)
     static std::vector<LidarPoint> decodeModifiedPacket(const uint8_t* data, size_t len);
 
-    // Thread-safe snapshot of all buffered frames
+    // Thread-safe snapshot of all buffered frames (non-destructive)
     std::vector<Frame> getFrames() const;
+
+    // Moves all buffered frames out of the internal deque and returns them.
+    // More efficient than getFrames() when frames will only be consumed once.
+    std::vector<Frame> drainFrames();
 
     // Returns true and consumes the flag if a new frame arrived since last call
     bool pollNewFrame();

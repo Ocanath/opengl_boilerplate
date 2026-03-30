@@ -86,7 +86,10 @@ private:
     // Collision boxes
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
-    std::vector<glm::vec3> lidarPoints_;        // rebuilt each new LiDAR frame
+    // GPU ring buffer for point cloud — never re-uploaded, only appended
+    static constexpr int MAX_GPU_POINTS = 5'000'000; // ~60 MB, ~22 s of history at 600 Hz
+    int gpuWriteHead_ = 0;   // next write position (in points)
+    int gpuTotalPts_  = 0;   // total valid points (capped at MAX_GPU_POINTS)
 
     // LiDAR
     std::unique_ptr<LidarSystem> lidar_;
@@ -131,10 +134,8 @@ private:
     std::unique_ptr<Shader> pointCloudShader_;
 
     // Point cloud GL objects
-    unsigned int pointCloudVAO_   = 0;
-    unsigned int pointCloudVBO_   = 0;
-    int          pointCloudCount_ = 0;
-    bool         pointCloudDirty_ = false;
+    unsigned int pointCloudVAO_ = 0;
+    unsigned int pointCloudVBO_ = 0;
 
     void initGBuffer(int w, int h);
     void destroyGBuffer();
