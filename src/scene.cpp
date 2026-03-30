@@ -600,8 +600,8 @@ void Scene::draw(int width, int height)
         pointCloudShader_->use();
         pointCloudShader_->setMat4("view",       view);
         pointCloudShader_->setMat4("projection", proj);
-        pointCloudShader_->setFloat("pointSize", 4.f);
-        pointCloudShader_->setVec3("color",      {1.f, 0.f, 0.f});
+        pointCloudShader_->setFloat("pointSize", 2.f);
+        pointCloudShader_->setFloat("maxDist",   30.f);
         glBindVertexArray(pointCloudVAO_);
         glDrawArrays(GL_POINTS, 0, gpuTotalPts_);
         glBindVertexArray(0);
