@@ -28,10 +28,23 @@ bool LidarSystem::connect(uint16_t p)
 
     tcs_lib_init();
 
-    TcsResult rc = tcs_udp_receiver_str(&socket_, "0.0.0.0", p);
+    TcsResult rc = tcs_socket_preset(&socket_, TCS_PRESET_UDP_IP4);
+    if (rc != TCS_SUCCESS)
+    {
+        fprintf(stderr, "LidarSystem: socket failed (%d)\n", rc);
+        tcs_lib_free();
+        return false;
+    }
+
+    struct TcsAddress addr = TCS_ADDRESS_NONE;
+    addr.family           = TCS_AF_IP4;
+    addr.data.ip4.address = TCS_ADDRESS_ANY_IP4;
+    addr.data.ip4.port    = p;
+    rc = tcs_bind(socket_, &addr);
     if (rc != TCS_SUCCESS)
     {
         fprintf(stderr, "LidarSystem: bind failed (%d)\n", rc);
+        tcs_close(&socket_);
         tcs_lib_free();
         return false;
     }
