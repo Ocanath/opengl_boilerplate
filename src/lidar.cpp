@@ -1,8 +1,5 @@
+#define TINYCSOCKET_IMPLEMENTATION
 #include "lidar.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 #include <cstring>
 #include <cstdio>
 #include <cmath>
@@ -29,26 +26,13 @@ bool LidarSystem::connect(uint16_t p)
 {
     if (running_) disconnect();
 
-    socket_ = ::socket(AF_INET, SOCK_DGRAM, 0);
-    if (socket_ < 0)
+    tcs_lib_init();
+
+    TcsResult rc = tcs_udp_receiver_str(&socket_, "0.0.0.0", p);
+    if (rc != TCS_SUCCESS)
     {
-        perror("LidarSystem: socket");
-        return false;
-    }
-
-    // 200 ms receive timeout so recvLoop can check running_
-    struct timeval tv { 0, 200000 };
-    setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-
-    sockaddr_in addr{};
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(p);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (::bind(socket_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-        perror("LidarSystem: bind");
-        ::close(socket_);
-        socket_ = -1;
+        fprintf(stderr, "LidarSystem: bind failed (%d)\n", rc);
+        tcs_lib_free();
         return false;
     }
 
@@ -62,9 +46,11 @@ void LidarSystem::disconnect()
     running_ = false;
     if (recvThread_.joinable())
         recvThread_.join();
-    if (socket_ >= 0) {
-        ::close(socket_);
-        socket_ = -1;
+    if (socket_ != TCS_SOCKET_INVALID)
+    {
+        tcs_close(&socket_);
+        socket_ = TCS_SOCKET_INVALID;
+        tcs_lib_free();
     }
 }
 
@@ -142,16 +128,26 @@ std::vector<LidarSystem::LidarPoint> LidarSystem::decodeModifiedPacket(const uin
 
 void LidarSystem::recvLoop()
 {
+    struct TcsPool* pool = nullptr;
+    tcs_pool_create(&pool);
+    tcs_pool_add(pool, socket_, nullptr, true, false, false);
+
     uint8_t buf[1242];
     while (running_)
     {
-        ssize_t received = ::recvfrom(socket_, buf, sizeof(buf), 0, nullptr, nullptr);
-        if (received == 1242)
+        struct TcsPollEvent ev = TCS_POOL_EVENT_EMPTY;
+        size_t populated = 0;
+        TcsResult prc = tcs_pool_poll(pool, &ev, 1, &populated, 200);
+        if (prc == TCS_SUCCESS && populated > 0 && ev.can_read)
         {
-			receivePacket(buf, static_cast<size_t>(received));
-		}
-        // On timeout (EAGAIN/EWOULDBLOCK), received < 0 — just loop and re-check running_
+            size_t received = 0;
+            TcsResult rrc = tcs_receive(socket_, buf, sizeof(buf), TCS_FLAG_NONE, &received);
+            if (rrc == TCS_SUCCESS && received == 1242)
+                receivePacket(buf, 1242);
+        }
     }
+
+    tcs_pool_destroy(&pool);
 }
 
 

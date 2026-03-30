@@ -1,4 +1,5 @@
 #pragma once
+#include "tinycsocket.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <deque>
@@ -46,7 +47,7 @@ public:
     uint16_t port              = 9000;
 
 private:
-    int                 socket_      = -1;
+    TcsSocket           socket_      = TCS_SOCKET_INVALID;
     std::thread         recvThread_;
     std::atomic<bool>   running_     = false;
 
