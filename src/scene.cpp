@@ -60,7 +60,7 @@ Scene::Scene()
     glBindVertexArray(pointCloudVAO_);
     glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
     glBufferData(GL_ARRAY_BUFFER,
-        (GLsizeiptr)(MAX_GPU_POINTS * sizeof(glm::vec3)), nullptr, GL_DYNAMIC_DRAW);
+        (GLsizeiptr)(maxGpuPoints * sizeof(glm::vec3)), nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
     glBindVertexArray(0);
@@ -443,6 +443,18 @@ void Scene::update(float dt, GLFWwindow* window)
 
 // ── LiDAR point cloud ─────────────────────────────────────────────────────────
 
+void Scene::resizePointCloud(int newMax)
+{
+    if (newMax <= 0) return;
+    maxGpuPoints  = newMax;
+    gpuWriteHead_ = 0;
+    gpuTotalPts_  = 0;
+    glBindBuffer(GL_ARRAY_BUFFER, pointCloudVBO_);
+    glBufferData(GL_ARRAY_BUFFER,
+        (GLsizeiptr)(maxGpuPoints * sizeof(glm::vec3)), nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void Scene::updateLidarPoints()
 {
     auto frames = lidar_->drainFrames();
@@ -454,7 +466,7 @@ void Scene::updateLidarPoints()
         int n = (int)frame.size();
         if (n == 0) continue;
 
-        int spaceToEnd = MAX_GPU_POINTS - gpuWriteHead_;
+        int spaceToEnd = maxGpuPoints - gpuWriteHead_;
         if (n <= spaceToEnd)
         {
             glBufferSubData(GL_ARRAY_BUFFER,
@@ -474,8 +486,8 @@ void Scene::updateLidarPoints()
                 (GLsizeiptr)((n - spaceToEnd) * (int)sizeof(glm::vec3)),
                 frame.data() + spaceToEnd);
         }
-        gpuWriteHead_ = (gpuWriteHead_ + n) % MAX_GPU_POINTS;
-        gpuTotalPts_  = std::min(gpuTotalPts_ + n, MAX_GPU_POINTS);
+        gpuWriteHead_ = (gpuWriteHead_ + n) % maxGpuPoints;
+        gpuTotalPts_  = std::min(gpuTotalPts_ + n, maxGpuPoints);
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

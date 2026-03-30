@@ -39,6 +39,12 @@ public:
     std::vector<Light>& getLights() { return lights_; }
     LidarSystem& getLidar() { return *lidar_; }
 
+    // Reallocates the GPU point cloud ring buffer and clears it.
+    // Reallocates the GPU point cloud ring buffer and clears it.
+    void resizePointCloud(int newMax);
+    int  gpuPointCount()  const { return gpuTotalPts_; }
+    int  gpuPointMax()    const { return maxGpuPoints; }
+
     // Thread-safe camera position read
     glm::vec3 getCameraPosition();
 
@@ -86,10 +92,10 @@ private:
     // Collision boxes
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
-    // GPU ring buffer for point cloud — never re-uploaded, only appended
-    static constexpr int MAX_GPU_POINTS = 5'000'000; // ~60 MB, ~22 s of history at 600 Hz
-    int gpuWriteHead_ = 0;   // next write position (in points)
-    int gpuTotalPts_  = 0;   // total valid points (capped at MAX_GPU_POINTS)
+    // GPU ring buffer — private state, size controlled via resizePointCloud()
+    int maxGpuPoints  = 5'000'000;
+    int gpuWriteHead_ = 0;
+    int gpuTotalPts_  = 0;
 
     // LiDAR
     std::unique_ptr<LidarSystem> lidar_;
