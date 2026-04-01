@@ -95,6 +95,7 @@ set(APP_SOURCES
     src/ability_push.cpp
     src/ability_move.cpp
     src/lidar.cpp
+	src/trig_fixed.c
 )
 
 if(WIN32)
