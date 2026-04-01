@@ -243,6 +243,7 @@ void LidarSystem::receivePacket(const uint8_t* data, size_t /*len*/)
             );
 
 			glm::vec3 point_base = R*point_lidar;
+			point_base.z += 10.f;
 
             pending_.push_back(point_base);
         }

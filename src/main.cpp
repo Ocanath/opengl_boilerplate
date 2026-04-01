@@ -324,8 +324,12 @@ int main()
             ImGui::TextColored({0.6f, 0.6f, 0.6f, 1.f}, "offline");
         }
 
-        ImGui::SliderInt("Max Pts/Frame", &lidar.maxPointsPerFrame, 100, 5000);
+        //ImGui::SliderInt("Max Pts/Frame", &lidar.maxPointsPerFrame, 100, 5000);
 
+		{
+			ImGui::InputFloat("Belt Ratio", &lidar.motor_gear_ratio, 0.f, 0.f, "%.9f",0);
+			ImGui::InputFloat("TiltCorrection", &lidar.zadjust, 0, 0, "%.9f", 0);
+		}
         {
             static int gpuPtsBuf = scene.gpuPointMax();
             ImGui::SetNextItemWidth(160.f);
