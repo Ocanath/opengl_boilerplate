@@ -5,7 +5,6 @@
 #include <cmath>
 #include <algorithm>
 #include <glm/gtc/quaternion.hpp>         
-#include "trig_fixed.h"                                                                                                                                                                       
 // #include <glm/gtx/quaternion.hpp>   
 
 #ifndef M_PI
@@ -175,7 +174,6 @@ static const glm::quat lidar_link_quat =
 	glm::angleAxis((float)M_PI/2.f, glm::vec3(0,0,1));   
 
 
-unwrap_state_t gl_unwrapper = {0};
 
 // ── Modified packet receiver ──────────────────────────────────────────────────
 //
@@ -215,13 +213,15 @@ void LidarSystem::receivePacket(const uint8_t* data, size_t /*len*/)
 			motor_angle = raw;
 		}
 		unwrap_angle_32b_overflow(motor_angle, TWO_PI_14B, &gl_unwrapper);
-		const float motor_gear_ratio = 1.47435294f;	//this is off - want to correct
+		
 		float motor_rad = ((float)gl_unwrapper.unwrapped_angle)/((float)(1<<14));
 		motor_rad = motor_rad/motor_gear_ratio;
 		// float motor_deg = motor_rad*180.f/M_PI;
 		// glm::quat R = glm::angleAxis(motor_rad, glm::vec3(0,0,1)) * lidar_link_quat;
-		glm::mat3 R = glm::mat3(glm::rotate(glm::mat4(1.f), motor_rad, {0,0,1})) * lidar_link_rot;
-		
+		glm::mat3 R = glm::mat3(glm::rotate(glm::mat4(1.f), motor_rad, {0,0,1})) * 
+					lidar_link_rot*
+					(glm::mat3(glm::rotate(glm::mat4(1.f), zadjust, {0,0,1})));
+		// R = R * glm::mat3(glm::rotate(glm::mat4(1.f), zadjust, {0,0,1}));
 
 
 		// printf("%f\n", motor_deg);

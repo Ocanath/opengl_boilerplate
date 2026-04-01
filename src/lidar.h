@@ -7,6 +7,7 @@
 #include <thread>
 #include <atomic>
 #include <cstdint>
+#include "trig_fixed.h"
 
 class LidarSystem {
 public:
@@ -45,6 +46,11 @@ public:
     int      bufferDepth       = 1024;
     int      maxPointsPerFrame = 2000;
     uint16_t port              = 9000;
+
+	float zadjust = 0*M_PI/180.f;
+	float motor_gear_ratio = 1.47435294f;	//this is off - want to correct
+	unwrap_state_t gl_unwrapper = {0};
+
 
 private:
     TcsSocket           socket_      = TCS_SOCKET_INVALID;
