@@ -280,11 +280,12 @@ void Scene::buildPillars()
 
 // ── Public interface ──────────────────────────────────────────────────────────
 
-void Scene::initArm(const std::vector<KinematicArm::LinkDef>& defs, glm::vec3 base)
+void Scene::initArm(const std::vector<KinematicArm::LinkDef>& defs,
+                    glm::vec3 base, float motorGain, float maxImpulse)
 {
     if (!cubeModel_) return;
     std::lock_guard<std::mutex> lk(physicsMutex_);
-    arm_.emplace(dynamicsWorld_, cubeModel_.get(), defs, base);
+    arm_.emplace(dynamicsWorld_, cubeModel_.get(), defs, base, motorGain, maxImpulse);
 }
 
 void Scene::setArmThetas(const std::vector<float>& thetas)

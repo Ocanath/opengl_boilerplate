@@ -68,7 +68,9 @@ public:
 
     // Kinematic arm — call once after Scene construction
     void initArm(const std::vector<KinematicArm::LinkDef>& defs,
-                 glm::vec3 base = {0.f, 0.f, 1.f});
+                 glm::vec3 base       = {0.f, 0.f, 0.5f},
+                 float     motorGain  = 8.f,
+                 float     maxImpulse = 5.f);
     // Feed encoder (or simulated) thetas each frame; thread-safe
     void setArmThetas(const std::vector<float>& thetas);
 

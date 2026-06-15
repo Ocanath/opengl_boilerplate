@@ -208,18 +208,21 @@ int main()
 	scene.snapshotInitialBodyStates();
 
     // ── Kinematic arm ─────────────────────────────────────────────────────────
-    // 2-DOF planar arm: two 3-unit rectangular links rotating in the XY plane.
     scene.initArm(
         {
-            { 3.f, 0.3f, 0.3f, {0.8f, 0.35f, 0.05f} },   // upper arm
-            { 2.f, 0.25f, 0.25f, {0.2f, 0.6f, 0.9f} },   // forearm
+            { 3.f,  0.4f, 0.4f, 1.5f, {0.8f, 0.35f, 0.05f} },
+            { 2.5f, 0.35f, 0.35f, 1.f, {0.2f, 0.6f, 0.9f}  },
+            { 2.f,  0.3f, 0.3f,  0.7f, {0.9f, 0.2f, 0.4f}  },
         },
-        {0.f, 0.f, 2.f}   // root joint position (above floor)
+        {0.f, 0.f, 0.5f},   // root joint just above floor
+        8.f,                 // motorGain  — lower = floppier
+        5.f                  // maxImpulse — lower = weaker joints
     );
 
     EncoderManager enc_manager;
 
     // Arm theta state — driven by ImGui sliders or encoder manager
+    // Joint 2 has no encoder; its motor is disabled so it flops freely.
     std::vector<float> armThetas = {0.f, 0.f};
 
     // Load the default unit cube as the test mesh
@@ -336,7 +339,7 @@ int main()
         if (ImGui::CollapsingHeader("Kinematic Arm")) {
             ImGui::SliderFloat("Joint 0 (rad)", &armThetas[0], -(float)M_PI, (float)M_PI);
             ImGui::SliderFloat("Joint 1 (rad)", &armThetas[1], -(float)M_PI, (float)M_PI);
-            ImGui::Text("theta0=%.3f  theta1=%.3f", armThetas[0], armThetas[1]);
+            ImGui::Text("theta0=%.3f  theta1=%.3f  joint2=free", armThetas[0], armThetas[1]);
         }
 
         ImGui::End();
