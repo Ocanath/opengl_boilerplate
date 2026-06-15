@@ -35,12 +35,6 @@ add_library(imgui STATIC
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 target_link_libraries(imgui PUBLIC glfw)
 
-# byte-stuffing (provides: cobs, PPP)
-add_subdirectory(external/byte-stuffing)
-
-# dartt-protocol (provides: dartt_protocol, dartt_checksum)
-add_subdirectory(external/dartt-protocol)
-
 # Bullet3 (suppress demos/tests)
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "" FORCE)
@@ -84,7 +78,6 @@ endif()
 
 target_link_libraries(${APP_TARGET}
     glad OpenGL::GL glfw glm::glm imgui assimp
-    cobs PPP dartt_protocol dartt_checksum
     -Wl,--start-group
         LinearMath Bullet3Common BulletInverseDynamics
         BulletCollision BulletDynamics
