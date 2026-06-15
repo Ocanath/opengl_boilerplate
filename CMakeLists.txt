@@ -43,6 +43,9 @@ set(BUILD_OPENGL3_DEMOS OFF CACHE BOOL "" FORCE)
 set(BUILD_CPU_DEMOS OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/bullet3)
 
+# Networked encoder API
+add_subdirectory(external/networked-encoder/api)
+
 # GLAD (vendored)
 add_library(glad STATIC src/glad.c)
 target_include_directories(glad PUBLIC src/)
@@ -65,6 +68,8 @@ set(APP_SOURCES
     src/ability_gravity.cpp
     src/ability_push.cpp
     src/ability_move.cpp
+    src/kinematic_arm.cpp
+    src/encoder_manager.cpp
 )
 
 if(WIN32)
@@ -82,6 +87,7 @@ target_link_libraries(${APP_TARGET}
         LinearMath Bullet3Common BulletInverseDynamics
         BulletCollision BulletDynamics
     -Wl,--end-group
+    encoder_controller
     ${CMAKE_DL_LIBS}
 )
 

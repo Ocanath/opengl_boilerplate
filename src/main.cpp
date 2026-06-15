@@ -7,6 +7,8 @@
 #include "scene.h"
 #include <btBulletDynamicsCommon.h>
 #include "light.h"
+#include "kinematic_arm.h"
+#include "encoder_manager.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -205,6 +207,21 @@ int main()
 	scene.addPile({0,0,6.5});
 	scene.snapshotInitialBodyStates();
 
+    // ── Kinematic arm ─────────────────────────────────────────────────────────
+    // 2-DOF planar arm: two 3-unit rectangular links rotating in the XY plane.
+    scene.initArm(
+        {
+            { 3.f, 0.3f, 0.3f, {0.8f, 0.35f, 0.05f} },   // upper arm
+            { 2.f, 0.25f, 0.25f, {0.2f, 0.6f, 0.9f} },   // forearm
+        },
+        {0.f, 0.f, 2.f}   // root joint position (above floor)
+    );
+
+    EncoderManager enc_manager;
+
+    // Arm theta state — driven by ImGui sliders or encoder manager
+    std::vector<float> armThetas = {0.f, 0.f};
+
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
 
@@ -220,6 +237,9 @@ int main()
         float  dt      = (float)(nowTime - prevTime);
         prevTime       = nowTime;
         dt = (dt > 0.1f) ? 0.1f : dt; // clamp large deltas
+
+        // armThetas = enc_manager.getThetas();  // uncomment when encoders are live
+        scene.setArmThetas(armThetas);
 
         // Update
         scene.update(dt, g_window);
@@ -311,6 +331,13 @@ int main()
         }
 
         scene.drawActiveAbilityOverlay();
+
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Kinematic Arm")) {
+            ImGui::SliderFloat("Joint 0 (rad)", &armThetas[0], -(float)M_PI, (float)M_PI);
+            ImGui::SliderFloat("Joint 1 (rad)", &armThetas[1], -(float)M_PI, (float)M_PI);
+            ImGui::Text("theta0=%.3f  theta1=%.3f", armThetas[0], armThetas[1]);
+        }
 
         ImGui::End();
 

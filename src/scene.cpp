@@ -79,6 +79,7 @@ Scene::~Scene()
 
     // Remove collision bodies from world (in reverse dependency order)
     abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
+    arm_.reset();
     lightBoxes_.clear();
     floatingPillars_.clear();
     chamberWalls_.clear();
@@ -278,6 +279,20 @@ void Scene::buildPillars()
 }
 
 // ── Public interface ──────────────────────────────────────────────────────────
+
+void Scene::initArm(const std::vector<KinematicArm::LinkDef>& defs, glm::vec3 base)
+{
+    if (!cubeModel_) return;
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    arm_.emplace(dynamicsWorld_, cubeModel_.get(), defs, base);
+}
+
+void Scene::setArmThetas(const std::vector<float>& thetas)
+{
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    if (arm_)
+        arm_->setThetas(thetas);
+}
 
 void Scene::addModel(const std::string& path)
 {
@@ -543,6 +558,10 @@ void Scene::draw(int width, int height)
     // Floating pillars
     for (auto& pillar : floatingPillars_)
         pillar.draw(*gShader_);
+
+    // Kinematic arm
+    if (arm_)
+        arm_->draw(*gShader_);
 
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

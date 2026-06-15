@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <atomic>
 #include <unordered_map>
@@ -12,6 +13,7 @@
 #include "shader.h"
 #include "collision_box.h"
 #include "ability.h"
+#include "kinematic_arm.h"
 
 struct ImDrawList;
 
@@ -63,6 +65,13 @@ public:
     float&      beamFireVelocity();      // ref to BeamAbility::fireVelocity for UI
     AbilityBase* getActiveAbilityPtr();
     void snapshotInitialBodyStates();
+
+    // Kinematic arm — call once after Scene construction
+    void initArm(const std::vector<KinematicArm::LinkDef>& defs,
+                 glm::vec3 base = {0.f, 0.f, 1.f});
+    // Feed encoder (or simulated) thetas each frame; thread-safe
+    void setArmThetas(const std::vector<float>& thetas);
+
     std::unique_ptr<Model>  cubeModel_;   // shared unit cube for all box meshes
 	btDiscreteDynamicsWorld*             dynamicsWorld_ = nullptr;
 
@@ -88,6 +97,8 @@ private:
     // Collision boxes
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
+
+    std::optional<KinematicArm> arm_;
 	
     // Ability system
     std::vector<std::unique_ptr<AbilityBase>> abilities_;

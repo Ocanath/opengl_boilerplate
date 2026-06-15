@@ -28,7 +28,8 @@ public:
     CollisionBox& operator=(const CollisionBox&) = delete;
 
     void      draw(Shader& shader) const;
-    void      syncKinematic(const glm::vec3& pos); // kinematic bodies only
+    void      syncKinematic(const glm::vec3& pos);                        // kinematic bodies only
+    void      syncKinematicPose(const glm::vec3& pos, const glm::quat& rot); // with orientation
     glm::vec3 getPosition()    const;
     glm::mat4 getModelMatrix() const;
     btRigidBody* getBody() const { return body_; }

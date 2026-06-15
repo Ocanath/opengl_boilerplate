@@ -121,6 +121,17 @@ void CollisionBox::draw(Shader& shader) const
     model_->draw(shader);
 }
 
+void CollisionBox::syncKinematicPose(const glm::vec3& pos, const glm::quat& rot)
+{
+    if (!body_) return;
+    btTransform t;
+    t.setIdentity();
+    t.setOrigin({ pos.x, pos.y, pos.z });
+    t.setRotation({ rot.x, rot.y, rot.z, rot.w });
+    body_->getMotionState()->setWorldTransform(t);
+    body_->setWorldTransform(t);
+}
+
 void CollisionBox::syncKinematic(const glm::vec3& pos)
 {
     if (!body_) return;
