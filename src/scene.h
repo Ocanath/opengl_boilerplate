@@ -13,7 +13,7 @@
 #include "shader.h"
 #include "collision_box.h"
 #include "ability.h"
-#include "kinematic_arm.h"
+#include "dynamic_arm.h"
 
 struct ImDrawList;
 
@@ -67,7 +67,7 @@ public:
     void snapshotInitialBodyStates();
 
     // Kinematic arm — call once after Scene construction
-    void initArm(const std::vector<KinematicArm::LinkDef>& defs,
+    void initArm(const std::vector<DynamicArm::LinkDef>& defs,
                  glm::vec3 base       = {0.f, 0.f, 0.5f},
                  float     motorGain  = 8.f,
                  float     maxImpulse = 5.f);
@@ -100,7 +100,7 @@ private:
     std::vector<CollisionBox> lightBoxes_;      // kinematic, one per light
     std::vector<CollisionBox> chamberWalls_;    // 6 static slabs
 
-    std::optional<KinematicArm> arm_;
+    std::optional<DynamicArm> arm_;
 	
     // Ability system
     std::vector<std::unique_ptr<AbilityBase>> abilities_;

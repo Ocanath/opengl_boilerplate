@@ -12,7 +12,7 @@ class Shader;
 // Links are dynamic rigid bodies connected by hinge constraints (Z axis).
 // Joint motors are driven by a proportional controller toward target angles.
 // Joints with no corresponding theta entry are left free (passive/floppy).
-class KinematicArm {
+class DynamicArm {
 public:
     struct LinkDef {
         float     length;
@@ -25,17 +25,17 @@ public:
     // base: world position of the root joint.
     // motorGain: proportional gain (rad/s per rad of error); lower = floppier.
     // maxImpulse: max motor impulse per step; lower = weaker joints.
-    KinematicArm(btDiscreteDynamicsWorld* world,
+    DynamicArm(btDiscreteDynamicsWorld* world,
                  Model*                   cubeModel,
                  const std::vector<LinkDef>& defs,
                  glm::vec3                base       = {0.f, 0.f, 0.5f},
                  float                    motorGain  = 8.f,
                  float                    maxImpulse = 5.f);
-    ~KinematicArm();
+    ~DynamicArm();
 
-    KinematicArm(const KinematicArm&)            = delete;
-    KinematicArm& operator=(const KinematicArm&) = delete;
-    KinematicArm(KinematicArm&&)                 = delete;
+    DynamicArm(const DynamicArm&)            = delete;
+    DynamicArm& operator=(const DynamicArm&) = delete;
+    DynamicArm(DynamicArm&&)                 = delete;
 
     // theta[i]: target angle for joint i relative to joint i-1 (radians).
     // Joints beyond thetas.size() have their motors disabled (free).

@@ -1,4 +1,4 @@
-#include "kinematic_arm.h"
+#include "dynamic_arm.h"
 #include "shader.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtc/quaternion.hpp>
@@ -8,7 +8,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-KinematicArm::KinematicArm(btDiscreteDynamicsWorld* world,
+DynamicArm::DynamicArm(btDiscreteDynamicsWorld* world,
                              Model*                   cubeModel,
                              const std::vector<LinkDef>& defs,
                              glm::vec3                base,
@@ -52,7 +52,7 @@ KinematicArm::KinematicArm(btDiscreteDynamicsWorld* world,
     }
 }
 
-KinematicArm::~KinematicArm()
+DynamicArm::~DynamicArm()
 {
     for (auto* h : hinges_) {
         world_->removeConstraint(h);
@@ -61,7 +61,7 @@ KinematicArm::~KinematicArm()
     // links_ CollisionBox destructors remove link bodies from world
 }
 
-void KinematicArm::setThetas(const std::vector<float>& thetas)
+void DynamicArm::setThetas(const std::vector<float>& thetas)
 {
     for (size_t i = 0; i < hinges_.size(); ++i) {
         if (i >= thetas.size()) {
@@ -79,7 +79,7 @@ void KinematicArm::setThetas(const std::vector<float>& thetas)
     }
 }
 
-void KinematicArm::draw(Shader& shader) const
+void DynamicArm::draw(Shader& shader) const
 {
     for (const auto& link : links_)
         link.draw(shader);

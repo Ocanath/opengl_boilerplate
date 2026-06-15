@@ -280,7 +280,7 @@ void Scene::buildPillars()
 
 // ── Public interface ──────────────────────────────────────────────────────────
 
-void Scene::initArm(const std::vector<KinematicArm::LinkDef>& defs,
+void Scene::initArm(const std::vector<DynamicArm::LinkDef>& defs,
                     glm::vec3 base, float motorGain, float maxImpulse)
 {
     if (!cubeModel_) return;

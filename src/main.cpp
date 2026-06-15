@@ -7,7 +7,7 @@
 #include "scene.h"
 #include <btBulletDynamicsCommon.h>
 #include "light.h"
-#include "kinematic_arm.h"
+#include "dynamic_arm.h"
 #include "encoder_manager.h"
 
 #include <cstdio>

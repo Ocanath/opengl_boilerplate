@@ -68,7 +68,7 @@ set(APP_SOURCES
     src/ability_gravity.cpp
     src/ability_push.cpp
     src/ability_move.cpp
-    src/kinematic_arm.cpp
+    src/dynamic_arm.cpp
     src/encoder_manager.cpp
 )
 
