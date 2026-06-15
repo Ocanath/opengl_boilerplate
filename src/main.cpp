@@ -238,7 +238,7 @@ int main()
         prevTime       = nowTime;
         dt = (dt > 0.1f) ? 0.1f : dt; // clamp large deltas
 
-        // armThetas = enc_manager.getThetas();  // uncomment when encoders are live
+        armThetas = enc_manager.getThetas();
         scene.setArmThetas(armThetas);
 
         // Update
