@@ -19,3 +19,6 @@
 [submodule "external/networked-encoder"]
 	path = external/networked-encoder
 	url = https://github.com/ocanath/networked-encoder
+[submodule "external/tinyxml2"]
+	path = external/tinyxml2
+	url = https://github.com/leethomason/tinyxml2
