@@ -290,7 +290,9 @@ void Scene::buildPuppet(const std::string& urdfPath)
 
         btTransform rootTransform;
         rootTransform.setIdentity();
-        rootTransform.setOrigin({0.f, 0.f, 2.f});
+        // Clear of the block piles around the origin (addPile calls in main.cpp)
+        // and below the floating-pillar grid (z in [30,60)) — adjust freely.
+        rootTransform.setOrigin({0.f, -50.f, 2.f});
 
         puppetBuild_ = urdf::buildRobot(robot, dynamicsWorld_, rootTransform);
         // Mesh filenames in the URDF are written relative to external/ (e.g.
@@ -587,9 +589,12 @@ void Scene::draw(int width, int height)
     if (arm_)
         arm_->draw(*gShader_);
 
-    // Puppet URDF — visual meshes/primitives, lit like the rest of the scene
+    // Puppet URDF — visual and (debug-colored) collision geometry, both lit
+    // like the rest of the scene
     if (puppetRender_ && showPuppetVisual_)
         puppetRender_->drawVisual(*gShader_);
+    if (puppetRender_ && showPuppetCollision_)
+        puppetRender_->drawCollision(*gShader_);
 
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -625,10 +630,6 @@ void Scene::draw(int width, int height)
 
     for (auto& lb : lightBoxes_)
         lb.draw(*unlitShader_);
-
-    // Puppet URDF — collision primitives, debug-colored, unlit
-    if (puppetRender_ && showPuppetCollision_)
-        puppetRender_->drawCollision(*unlitShader_);
 
     // Ability preview (active only) + owned boxes from every ability
     if (!abilities_.empty()) {

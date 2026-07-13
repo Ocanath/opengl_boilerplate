@@ -127,8 +127,8 @@ private:
     // Puppet URDF
     urdf::BuildResult          puppetBuild_;
     std::optional<UrdfRender>  puppetRender_;
-    bool showPuppetVisual_    = true;
-    bool showPuppetCollision_ = false;
+    bool showPuppetVisual_    = false;
+    bool showPuppetCollision_ = true;
 
     // ── Deferred rendering ────────────────────────────────────────────────
     // G-buffer

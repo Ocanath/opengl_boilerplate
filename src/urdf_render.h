@@ -26,11 +26,10 @@ class UrdfRender {
 public:
     UrdfRender(const urdf::BuildResult& build, const std::string& meshBaseDir);
 
-    // Call during the deferred G-buffer pass (lit, like the rest of the scene).
-    void drawVisual(Shader& shader) const;
-
-    // Call during the unlit forward pass; drawn in a fixed debug color since
+    // Both are meant for the deferred G-buffer pass, lit exactly like the
+    // rest of the scene. drawCollision() draws in a fixed debug color since
     // <collision> carries no material.
+    void drawVisual(Shader& shader) const;
     void drawCollision(Shader& shader) const;
 
 private:

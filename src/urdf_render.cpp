@@ -13,7 +13,7 @@ namespace {
 
 // Debug color for every <collision> primitive — collisions carry no
 // material, so there's nothing else to color them by.
-constexpr glm::vec3 kCollisionColor{0.2f, 0.9f, 0.3f};
+constexpr glm::vec3 kCollisionColor{0.f, 0.f, 0.f};
 constexpr glm::vec3 kDefaultVisualColor{0.7f, 0.7f, 0.75f}; // <visual> with no <material><color>
 
 glm::mat4 toGlmMat4(const btTransform& t)
