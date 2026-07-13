@@ -1,5 +1,6 @@
 #pragma once
-#include <unordered_map>
+#include <string>
+#include <utility>
 #include <vector>
 #include <LinearMath/btTransform.h>
 #include "urdf_to_bullet/urdf_model.h"
@@ -25,16 +26,22 @@ struct VisualInstance {
 // this: keep it alive for as long as the robot should exist in the world,
 // and pass it to destroyBuildResult() to tear it back down.
 struct BuildResult {
-    std::unordered_map<std::string, btRigidBody*> bodiesByLinkName;
+    // Name -> body, in the order bodies were created. Robots are small, so a
+    // linear scan (see findBody() below) is simpler than a lookup table.
+    std::vector<std::pair<std::string, btRigidBody*>> bodiesByLinkName;
     std::vector<btRigidBody*>       bodies;
     std::vector<btCollisionShape*>  shapes;
     std::vector<btTypedConstraint*> constraints;
     std::vector<VisualInstance>     visuals;
 };
 
+// Linear scan for the body created for the link named `linkName`. Returns
+// nullptr if there's no such link.
+btRigidBody* findBody(const BuildResult& result, const std::string& linkName);
+
 // Builds one btRigidBody per link (added to `world`) and one btTypedConstraint
-// per joint (added to `world`), placing the robot's root link(s) — links that
-// are never a joint's child — at rootTransform.
+// per joint (added to `world`), starting from robot.root() and placing it at
+// rootTransform.
 //
 // Collision shapes are built only from box/cylinder/sphere <collision>
 // primitives (a link with none gets an empty shape, still a valid rigid
@@ -47,6 +54,9 @@ struct BuildResult {
 // Bodies behave like any other rigid body already in the world (subject to
 // world gravity, ray casts, ability effects, etc.) — nothing here treats
 // them specially.
+//
+// Does not retain any Link*/Joint* from `robot` past this call; `robot` may
+// be destroyed immediately after buildRobot() returns.
 BuildResult buildRobot(const Robot& robot,
                        btDiscreteDynamicsWorld* world,
                        const btTransform& rootTransform = btTransform::getIdentity());

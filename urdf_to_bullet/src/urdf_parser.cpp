@@ -132,7 +132,19 @@ Link parseLink(const XMLElement* linkElem)
     return link;
 }
 
-Joint parseJoint(const XMLElement* jointElem)
+// URDF files are small (tens to low hundreds of links); a linear scan by
+// name is simpler than a lookup table and this only runs once at load time.
+Link* findLinkByName(const std::vector<Link*>& links, const std::string& name)
+{
+    for (Link* link : links)
+        if (link->name == name) return link;
+    return nullptr;
+}
+
+// Returned by value, same as parseLink(): built up as a local first so a
+// thrown exception partway through just unwinds the stack. Robot::addJoint()
+// takes ownership (heap-allocates it) and wires it into the pointer graph.
+Joint parseJoint(const XMLElement* jointElem, const std::vector<Link*>& links)
 {
     Joint joint{};
     if (const char* name = jointElem->Attribute("name"))
@@ -150,10 +162,18 @@ Joint parseJoint(const XMLElement* jointElem)
             "\" (urdf_to_bullet supports fixed/revolute/continuous/prismatic only)");
     }
 
+    std::string parentName, childName;
     if (const XMLElement* parent = jointElem->FirstChildElement("parent"))
-        if (const char* link = parent->Attribute("link")) joint.parentLink = link;
+        if (const char* link = parent->Attribute("link")) parentName = link;
     if (const XMLElement* child = jointElem->FirstChildElement("child"))
-        if (const char* link = child->Attribute("link")) joint.childLink = link;
+        if (const char* link = child->Attribute("link")) childName = link;
+
+    joint.parentLink = findLinkByName(links, parentName);
+    joint.childLink   = findLinkByName(links, childName);
+    if (!joint.parentLink)
+        throw std::runtime_error("urdf: joint \"" + joint.name + "\" references unknown parent link \"" + parentName + "\"");
+    if (!joint.childLink)
+        throw std::runtime_error("urdf: joint \"" + joint.name + "\" references unknown child link \"" + childName + "\"");
 
     joint.origin = parsePose(jointElem);
 
@@ -181,11 +201,12 @@ Robot parseDocument(XMLDocument& doc)
         robot.name = name;
 
     for (const XMLElement* link = root->FirstChildElement("link"); link; link = link->NextSiblingElement("link"))
-        robot.links.push_back(parseLink(link));
+        robot.addLink(parseLink(link));
 
-    for (const XMLElement* joint = root->FirstChildElement("joint"); joint; joint = joint->NextSiblingElement("joint"))
-        robot.joints.push_back(parseJoint(joint));
+    for (const XMLElement* jointElem = root->FirstChildElement("joint"); jointElem; jointElem = jointElem->NextSiblingElement("joint"))
+        robot.addJoint(parseJoint(jointElem, robot.links()));
 
+    robot.finalize();
     return robot;
 }
 
