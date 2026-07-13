@@ -72,6 +72,11 @@ Model::Model(const std::string& path)
     loadAssimp(path);
 }
 
+Model::Model(std::vector<Mesh> meshes)
+    : meshes_(std::move(meshes))
+{
+}
+
 void Model::draw(Shader& shader) const
 {
     for (const Mesh& m : meshes_)

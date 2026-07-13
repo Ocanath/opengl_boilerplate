@@ -8,6 +8,7 @@ class Model
 {
 public:
     explicit Model(const std::string& path);
+    explicit Model(std::vector<Mesh> meshes);
 
     void draw(Shader& shader) const;
 

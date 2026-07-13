@@ -70,6 +70,7 @@ set(APP_SOURCES
     src/ability_move.cpp
     src/dynamic_arm.cpp
     src/encoder_manager.cpp
+    src/asset_library.cpp
 )
 
 if(WIN32)
