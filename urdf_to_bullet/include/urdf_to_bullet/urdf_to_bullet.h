@@ -22,6 +22,14 @@ struct VisualInstance {
     btTransform  localTransform;
 };
 
+// A <collision> primitive, re-based the same way as VisualInstance — for a
+// debug renderer that wants to draw exactly the shapes physics is using.
+struct CollisionInstance {
+    btRigidBody* body = nullptr;
+    Geometry     geometry;
+    btTransform  localTransform;
+};
+
 // Everything buildRobot() allocated and added to the world. The caller owns
 // this: keep it alive for as long as the robot should exist in the world,
 // and pass it to destroyBuildResult() to tear it back down.
@@ -33,6 +41,7 @@ struct BuildResult {
     std::vector<btCollisionShape*>  shapes;
     std::vector<btTypedConstraint*> constraints;
     std::vector<VisualInstance>     visuals;
+    std::vector<CollisionInstance>  collisions;
 };
 
 // Linear scan for the body created for the link named `linkName`. Returns

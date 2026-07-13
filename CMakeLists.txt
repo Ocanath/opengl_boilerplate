@@ -78,6 +78,7 @@ set(APP_SOURCES
     src/dynamic_arm.cpp
     src/encoder_manager.cpp
     src/asset_library.cpp
+    src/urdf_render.cpp
 )
 
 if(WIN32)
@@ -93,7 +94,7 @@ target_link_libraries(${APP_TARGET}
     glad OpenGL::GL glfw glm::glm imgui assimp
     -Wl,--start-group
         LinearMath Bullet3Common BulletInverseDynamics
-        BulletCollision BulletDynamics
+        BulletCollision BulletDynamics urdf_to_bullet
     -Wl,--end-group
     encoder_controller
     ${CMAKE_DL_LIBS}

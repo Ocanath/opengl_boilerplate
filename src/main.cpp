@@ -342,6 +342,12 @@ int main()
             ImGui::Text("theta0=%.3f  theta1=%.3f  joint2=free", armThetas[0], armThetas[1]);
         }
 
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Puppet URDF")) {
+            ImGui::Checkbox("Visual",    &scene.showPuppetVisual());
+            ImGui::Checkbox("Collision", &scene.showPuppetCollision());
+        }
+
         ImGui::End();
 
         // Foreground HUD overlays (drawn over everything, outside any window)

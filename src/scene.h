@@ -14,6 +14,7 @@
 #include "collision_box.h"
 #include "ability.h"
 #include "dynamic_arm.h"
+#include "urdf_render.h"
 
 struct ImDrawList;
 
@@ -74,6 +75,10 @@ public:
     // Feed encoder (or simulated) thetas each frame; thread-safe
     void setArmThetas(const std::vector<float>& thetas);
 
+    // Puppet URDF — visual/collision draw toggles, bound directly to ImGui checkboxes.
+    bool& showPuppetVisual()    { return showPuppetVisual_; }
+    bool& showPuppetCollision() { return showPuppetCollision_; }
+
     std::unique_ptr<Model>  cubeModel_;   // shared unit cube for all box meshes
 	btDiscreteDynamicsWorld*             dynamicsWorld_ = nullptr;
 
@@ -117,6 +122,13 @@ private:
 
     void buildChamber(glm::vec3 dims);
     void buildPillars();
+    void buildPuppet(const std::string& urdfPath);
+
+    // Puppet URDF
+    urdf::BuildResult          puppetBuild_;
+    std::optional<UrdfRender>  puppetRender_;
+    bool showPuppetVisual_    = true;
+    bool showPuppetCollision_ = false;
 
     // ── Deferred rendering ────────────────────────────────────────────────
     // G-buffer

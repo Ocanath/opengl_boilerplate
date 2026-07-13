@@ -1,0 +1,726 @@
+<?xml version='1.0' encoding='cp1252'?>
+<robot name="puppet">
+
+    <!--body references and transformations -->
+    <link name="upper-torso">
+        <collision>
+            <origin xyz="0 0 23e-3" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="32e-3" />
+            </geometry>
+        </collision>
+        <collision>
+            <origin xyz="0 0 -10e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="27e-3" length="20e-3" />
+            </geometry>
+        </collision>
+        <collision>
+            <origin xyz="0 0 -50e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="40e-3" length="60e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="upper-torso-waist-stator">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="base">
+        <collision>
+            <origin xyz="0 0 -90e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="10e-3" length="180e-3" />
+            </geometry>
+        </collision>
+        <collision>
+            <origin xyz="0 0 -180e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="180e-3" length="10e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="base-rotor-waist">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="upper-torso-to-stator" type="fixed">
+        <parent link="upper-torso" />
+        <child link="upper-torso-waist-stator" />
+        <origin xyz="0 0 -80e-3" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+    <joint name="upper-torso-stator-to-base-rotor" type="continuous">
+        <parent link="upper-torso-waist-stator" />
+        <child link="base-rotor-waist" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+    <joint name="base-rotor-to-base" type="fixed">
+        <parent link="base-rotor-waist" />
+        <child link="base" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+    <link name="upper-torso-arm-stator-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="upper-torso-arm-stator-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="uppertorso-bone-armstator-left">
+    </link>    
+    <joint name="uppertorso-bone-left" type="fixed">
+        <parent link="upper-torso" />
+        <child link="uppertorso-bone-armstator-left" />
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+    <joint name="uppertorso-bone-upperarmstator" type="fixed">
+        <parent link="uppertorso-bone-armstator-left" />
+        <child link="upper-torso-arm-stator-left" />
+        <origin xyz="0 40e-3 0" rpy="0 -1.57079633 0" />
+    </joint>
+    <link name="uppertorso-bone-armstator-right">
+    </link>
+    <joint name="uppertorso-bone-right" type="fixed">
+        <parent link="upper-torso" />
+        <child link="uppertorso-bone-armstator-right" />
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+    <joint name="uppertorso-bone-upperarmstator" type="fixed">
+        <parent link="uppertorso-bone-armstator-right" />
+        <child link="upper-torso-arm-stator-right" />
+        <origin xyz="0 -40e-3 0" rpy="0 -1.57079633 0" />
+    </joint>
+
+
+    <!-- link 1, including internal fixed transforms -->
+    <link name="link1-rotor-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link1-bone-left">   
+        <!-- add properties - geometry, etc -->
+        <collision>
+            <origin xyz="0 24e-3 0" rpy="0 0 0" />
+            <geometry>
+            <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link1-stator-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link1-rotor-to-bone-left" type="fixed">
+        <parent link="link1-rotor-left" />
+        <child link="link1-bone-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link1-bone-to-stator-left" type="fixed">
+        <parent link="link1-bone-left" />
+        <child link="link1-stator-left" />
+        <origin xyz="0 37.5e-3 0" rpy="1.57079633 0 0" />
+    </joint>
+    <!-- rotational joint in link 1-->
+    <joint name="q1-left" type="continuous">
+        <parent link="upper-torso-arm-stator-left" />
+        <child link="link1-rotor-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+
+    <!--collection of transforms for link2 -->
+    <link name="link2-rotor-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link2-bone-left">  
+        <collision>
+            <origin xyz="-23e-3 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link2-stator-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link2-rotor-to-bone-left" type="fixed">
+        <parent link="link2-rotor-left" />
+        <child link="link2-bone-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link2-bone-to-stator-left" type="fixed">
+        <parent link="link2-bone-left" />
+        <child link="link2-stator-left" />
+        <origin xyz="-40e-3 0 0" rpy="0 1.57079633 0" />
+    </joint>
+    <!-- rotational joint q2 -->
+    <joint name="q2-left" type="continuous">
+        <parent link="link1-stator-left" />
+        <child link="link2-rotor-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+    <!-- collection of links and transforms comprising link 3 -->
+    <link name="link3-rotor-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link3-bone-left">  
+        <collision>
+            <origin xyz="0 0 -20e-3" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link3-stator-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link3-rotor-to-bone-left" type="fixed">
+        <parent link="link3-rotor-left" />
+        <child link="link3-bone-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link3-bone-to-stator-left" type="fixed">
+        <parent link="link3-bone-left" />
+        <child link="link3-stator-left" />
+        <origin xyz="0 -20e-3 -45e-3" rpy="0 1.57079633 3.14159265359" />
+    </joint>
+    <!-- rotational joint q3 -->
+    <joint name="q3-left" type="continuous">
+        <parent link="link2-stator-left" />
+        <child link="link3-rotor-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+    
+
+    <!-- collection of links and transforms comprising link4 -->
+    <link name="link4-rotor-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link4-bone-left">  
+        <collision>
+            <origin xyz="23e-3 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link4-stator-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link4-rotor-to-bone-left" type="fixed">
+        <parent link="link4-rotor-left" />
+        <child link="link4-bone-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link4-bone-to-stator-left" type="fixed">
+        <parent link="link4-bone-left" />
+        <child link="link4-stator-left" />
+        <origin xyz="40e-3 0 0" rpy="-1.57079633 0 1.57079633" />
+    </joint>
+    <!-- rotational joint q4 -->
+    <joint name="q4-left" type="continuous">
+        <parent link="link3-stator-left" />
+        <child link="link4-rotor-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+
+    <!-- collection of links and transforms comprising link4 -->
+    <link name="link5-rotor-left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link5-wrist-left">
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="60e-3" />
+            </geometry>
+        </collision>        
+    </link>
+    <link name="link5-hammer-left">
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="19e-3" length="40e-3" />
+            </geometry>
+        </collision>        
+    </link>
+    <joint name="link5-rotor-to-wrist-left" type="fixed">
+        <parent link="link5-rotor-left" />
+        <child link="link5-wrist-left" />
+        <origin xyz="0 0 -45e-3" rpy="0 0 0" />
+    </joint>
+    <joint name="link5-wrist-to-hammer-left" type="fixed">
+        <parent link="link5-wrist-left" />
+        <child link="link5-hammer-left" />
+        <origin xyz="0 0 -30e-3" rpy="0 1.57 0" />
+    </joint>
+    <!-- rotational joint q5 -->
+    <joint name="q5-left" type="continuous">
+        <parent link="link4-stator-left" />
+        <child link="link5-rotor-left" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+
+
+<!-- big separation - right  arm mirrors left. If you wanna change this, do operations on left first then mirror them for the right-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- link 1, including internal fixed transforms -->
+    <link name="link1-rotor-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link1-bone-right">   
+        <!-- add properties - geometry, etc -->
+        <collision>
+            <origin xyz="0 -24e-3 0" rpy="0 0 0" />
+            <geometry>
+            <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link1-stator-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link1-rotor-to-bone-right" type="fixed">
+        <parent link="link1-rotor-right" />
+        <child link="link1-bone-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link1-bone-to-stator-right" type="fixed">
+        <parent link="link1-bone-right" />
+        <child link="link1-stator-right" />
+        <origin xyz="0 -37.5e-3 0" rpy="-1.57079633 0 0" />
+    </joint>
+    <!-- rotational joint in link 1-->
+    <joint name="q1-right" type="continuous">
+        <parent link="upper-torso-arm-stator-right" />
+        <child link="link1-rotor-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+
+    <!--collection of transforms for link2 -->
+    <link name="link2-rotor-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link2-bone-right">  
+        <collision>
+            <origin xyz="-23e-3 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link2-stator-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link2-rotor-to-bone-right" type="fixed">
+        <parent link="link2-rotor-right" />
+        <child link="link2-bone-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link2-bone-to-stator-right" type="fixed">
+        <parent link="link2-bone-right" />
+        <child link="link2-stator-right" />
+        <origin xyz="-40e-3 0 0" rpy="0 1.57079633 0" />
+    </joint>
+    <!-- rotational joint q2 -->
+    <joint name="q2-right" type="continuous">
+        <parent link="link1-stator-right" />
+        <child link="link2-rotor-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+    <!-- collection of links and transforms comprising link 3 -->
+    <link name="link3-rotor-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link3-bone-right">  
+        <collision>
+            <origin xyz="0 0 -20e-3" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link3-stator-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link3-rotor-to-bone-right" type="fixed">
+        <parent link="link3-rotor-right" />
+        <child link="link3-bone-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link3-bone-to-stator-right" type="fixed">
+        <parent link="link3-bone-right" />
+        <child link="link3-stator-right" />
+        <origin xyz="0 20e-3 -45e-3" rpy="0 1.57079633 3.14159265359" />
+    </joint>
+    <!-- rotational joint q3 -->
+    <joint name="q3-right" type="continuous">
+        <parent link="link2-stator-right" />
+        <child link="link3-rotor-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+    
+
+    <!-- collection of links and transforms comprising link4 -->
+    <link name="link4-rotor-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link4-bone-right">  
+        <collision>
+            <origin xyz="23e-3 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="5e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="link4-stator-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/stator-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -2.16e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="21e-3" length="20.88e-3" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="link4-rotor-to-bone-right" type="fixed">
+        <parent link="link4-rotor-right" />
+        <child link="link4-bone-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="link4-bone-to-stator-right" type="fixed">
+        <parent link="link4-bone-right" />
+        <child link="link4-stator-right" />
+        <origin xyz="40e-3 0 0" rpy="1.57079633 0 -1.57079633" />
+    </joint>
+    <!-- rotational joint q4 -->
+    <joint name="q4-right" type="continuous">
+        <parent link="link3-stator-right" />
+        <child link="link4-rotor-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+
+    <!-- collection of links and transforms comprising link4 -->
+    <link name="link5-rotor-right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="networked-encoder/CAD/stl/rotor-coarse.STL" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -6.8e-3" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="17.6e-3" />
+            </geometry>
+        </collision>
+    </link>
+        <link name="link5-wrist-right">
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="13.45e-3" length="60e-3" />
+            </geometry>
+        </collision>        
+    </link>
+    <link name="link5-hammer-right">
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="19e-3" length="40e-3" />
+            </geometry>
+        </collision>        
+    </link>
+    <joint name="link5-rotor-to-wrist-right" type="fixed">
+        <parent link="link5-rotor-right" />
+        <child link="link5-wrist-right" />
+        <origin xyz="0 0 -45e-3" rpy="0 0 0" />
+    </joint>
+    <joint name="link5-wrist-to-hammer-right" type="fixed">
+        <parent link="link5-wrist-right" />
+        <child link="link5-hammer-right" />
+        <origin xyz="0 0 -30e-3" rpy="0 1.57 0" />
+    </joint>
+    <!-- rotational joint q5 -->
+    <joint name="q5-right" type="continuous">
+        <parent link="link4-stator-right" />
+        <child link="link5-rotor-right" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</robot>

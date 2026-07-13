@@ -208,6 +208,14 @@ BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const
             result.visuals.push_back(std::move(vi));
         }
 
+        for (const Collision& c : cur.link->collisions) {
+            CollisionInstance ci;
+            ci.body = body;
+            ci.geometry = c.geometry;
+            ci.localTransform = comLocalInverse * toBtTransform(c.origin);
+            result.collisions.push_back(std::move(ci));
+        }
+
         // The edge that reached this link connects two now-existing bodies.
         if (cur.incomingJoint) {
             // The joint frame coincides with the child link's frame, so

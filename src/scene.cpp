@@ -3,6 +3,7 @@
 #include "ability_gravity.h"
 #include "ability_push.h"
 #include "ability_move.h"
+#include "urdf_to_bullet/urdf_parser.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -13,6 +14,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cmath>
+#include <stdexcept>
 #include <thread>
 
 #ifndef M_PI
@@ -39,6 +41,7 @@ Scene::Scene()
 
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
+    buildPuppet("assets/puppet.urdf");
 
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
@@ -78,6 +81,8 @@ Scene::~Scene()
         physicsThread_.join();
 
     // Remove collision bodies from world (in reverse dependency order)
+    puppetRender_.reset();
+    destroyBuildResult(puppetBuild_, dynamicsWorld_);
     abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
     arm_.reset();
     lightBoxes_.clear();
@@ -275,6 +280,24 @@ void Scene::buildPillars()
                 b->setAngularVelocity({xpos/10, ypos/10, zpos/10});
             }
         }
+    }
+}
+
+void Scene::buildPuppet(const std::string& urdfPath)
+{
+    try {
+        urdf::Robot robot = urdf::parseUrdfFile(urdfPath);
+
+        btTransform rootTransform;
+        rootTransform.setIdentity();
+        rootTransform.setOrigin({0.f, 0.f, 2.f});
+
+        puppetBuild_ = urdf::buildRobot(robot, dynamicsWorld_, rootTransform);
+        // Mesh filenames in the URDF are written relative to external/ (e.g.
+        // "networked-encoder/CAD/stl/..."), matching that submodule's layout.
+        puppetRender_.emplace(puppetBuild_, "external/");
+    } catch (const std::exception& e) {
+        fprintf(stderr, "Scene: could not load puppet URDF \"%s\": %s\n", urdfPath.c_str(), e.what());
     }
 }
 
@@ -564,6 +587,10 @@ void Scene::draw(int width, int height)
     if (arm_)
         arm_->draw(*gShader_);
 
+    // Puppet URDF — visual meshes/primitives, lit like the rest of the scene
+    if (puppetRender_ && showPuppetVisual_)
+        puppetRender_->drawVisual(*gShader_);
+
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
@@ -598,6 +625,10 @@ void Scene::draw(int width, int height)
 
     for (auto& lb : lightBoxes_)
         lb.draw(*unlitShader_);
+
+    // Puppet URDF — collision primitives, debug-colored, unlit
+    if (puppetRender_ && showPuppetCollision_)
+        puppetRender_->drawCollision(*unlitShader_);
 
     // Ability preview (active only) + owned boxes from every ability
     if (!abilities_.empty()) {
