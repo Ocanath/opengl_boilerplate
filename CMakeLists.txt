@@ -46,6 +46,13 @@ add_subdirectory(external/bullet3)
 # Networked encoder API
 add_subdirectory(external/networked-encoder/api)
 
+# tinyxml2 (used by urdf_to_bullet)
+set(tinyxml2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/tinyxml2)
+
+# urdf_to_bullet: standalone URDF -> Bullet rigid body/constraint importer
+add_subdirectory(urdf_to_bullet)
+
 # GLAD (vendored)
 add_library(glad STATIC src/glad.c)
 target_include_directories(glad PUBLIC src/)
