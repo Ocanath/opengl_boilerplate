@@ -64,11 +64,24 @@ btRigidBody* findBody(const BuildResult& result, const std::string& linkName);
 // world gravity, ray casts, ability effects, etc.) — nothing here treats
 // them specially.
 //
+// A link's mass/inertia come from its <inertial> when present. When it's
+// not: mass defaults to 0 (static — a link with no <inertial> is simply
+// immovable, same as Bullet's own convention for mass 0) unless
+// collisionDensity > 0, in which case mass = collisionDensity * (summed
+// volume of that link's <collision> primitives). Whenever a link ends up
+// with mass > 0 and still no usable inertia (none given, or an explicit
+// <inertial> whose ixx/iyy/izz are all exactly zero), it's left at zero
+// inertia — translates normally but never rotates — unless
+// calculateCollisionInertia is true, in which case it's derived from the
+// link's collision shape instead.
+//
 // Does not retain any Link*/Joint* from `robot` past this call; `robot` may
 // be destroyed immediately after buildRobot() returns.
 BuildResult buildRobot(const Robot& robot,
                        btDiscreteDynamicsWorld* world,
-                       const btTransform& rootTransform = btTransform::getIdentity());
+                       const btTransform& rootTransform = btTransform::getIdentity(),
+                       bool calculateCollisionInertia = false,
+                       double collisionDensity = 0.0);
 
 // Removes every body/constraint in `result` from `world` and deletes them.
 void destroyBuildResult(BuildResult& result, btDiscreteDynamicsWorld* world);

@@ -41,7 +41,7 @@ Scene::Scene()
 
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
-    buildPuppet("assets/puppet.urdf");
+    buildPuppet("assets/puppet.urdf", true, 1000.0);
 
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
@@ -283,7 +283,7 @@ void Scene::buildPillars()
     }
 }
 
-void Scene::buildPuppet(const std::string& urdfPath)
+void Scene::buildPuppet(const std::string& urdfPath, bool calculateCollisionInertia, double collisionDensity)
 {
     try {
         urdf::Robot robot = urdf::parseUrdfFile(urdfPath);
@@ -294,7 +294,8 @@ void Scene::buildPuppet(const std::string& urdfPath)
         // and below the floating-pillar grid (z in [30,60)) — adjust freely.
         rootTransform.setOrigin({0.f, -50.f, 2.f});
 
-        puppetBuild_ = urdf::buildRobot(robot, dynamicsWorld_, rootTransform);
+        puppetBuild_ = urdf::buildRobot(robot, dynamicsWorld_, rootTransform,
+                                         calculateCollisionInertia, collisionDensity);
         // Mesh filenames in the URDF are written relative to external/ (e.g.
         // "networked-encoder/CAD/stl/..."), matching that submodule's layout.
         puppetRender_.emplace(puppetBuild_, "external/");

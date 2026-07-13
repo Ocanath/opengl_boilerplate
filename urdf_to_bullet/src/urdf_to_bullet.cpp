@@ -9,6 +9,8 @@
 namespace urdf {
 namespace {
 
+constexpr double kPi = 3.14159265358979323846;
+
 btTransform toBtTransform(const Pose& pose)
 {
     btQuaternion rotation =
@@ -103,16 +105,66 @@ btCollisionShape* buildLinkShape(const Link& link,
     return compound;
 }
 
+// For the collisionDensity fallback: the geometric volume URDF describes,
+// independent of whatever Bullet shape it became.
+double geometryVolume(const Geometry& geom)
+{
+    switch (geom.type) {
+        case GeometryType::Box:
+            return geom.boxSize.x * geom.boxSize.y * geom.boxSize.z;
+        case GeometryType::Cylinder:
+            return kPi * geom.cylinderRadius * geom.cylinderRadius * geom.cylinderLength;
+        case GeometryType::Sphere:
+            return (4.0 / 3.0) * kPi * geom.sphereRadius * geom.sphereRadius * geom.sphereRadius;
+        case GeometryType::Mesh:
+            return 0.0; // urdf_parser rejects mesh <collision>; unreachable in practice
+    }
+    return 0.0;
+}
+
+double linkCollisionVolume(const Link& link)
+{
+    double total = 0.0;
+    for (const Collision& c : link.collisions)
+        total += geometryVolume(c.geometry);
+    return total;
+}
+
 // One entry on the DFS stack: a link that's been reached and is ready to
 // become a body, plus (except for the root) the edge that reached it and
-// the parent body/comLocalInverse already built for that edge's other end.
+// the nearest real (non-welded — see isWeldedAway below) ancestor body for
+// that edge's other end.
 struct PendingLink {
     const Link*  link;
     btTransform  linkFrame;                // this link's own frame, in world space
     const Joint* incomingJoint = nullptr;  // edge that reached this link; null for the root
-    btRigidBody* parentBody = nullptr;
-    btTransform  parentComLocalInverse;
+    btRigidBody* parentBody = nullptr;     // nearest real ancestor body; null for the root
 };
+
+// A link with no <collision>, <visual>, or <inertial> at all is a pure
+// transform pass-through in the tree — common for e.g. a "bone" link that
+// only exists to carry a fixed offset between two real parts. Giving it its
+// own rigid body is actively wrong once any neighboring link has mass:
+// mass-0 in Bullet means immovable, so a massless link wedged between two
+// dynamic links via fixed joints would anchor part of the robot to a fixed
+// point in space while the rest of it tries to move/fall — an unsatisfiable
+// constraint every solver step, which explodes.
+//
+// So such a link gets no body at all: its joint's transform is folded into
+// whatever real body eventually appears further down the chain (the DFS's
+// existing linkFrame accumulation already does this automatically). This
+// only works when the joint feeding into it is fixed — a revolute/
+// continuous/prismatic joint is an actual runtime degree of freedom and
+// can't be folded into a static transform, so a contentless link reached
+// that way still gets a normal (if massless) body.
+bool isWeldedAway(const Link& link, const Joint* incomingJoint)
+{
+    return incomingJoint
+        && incomingJoint->type == JointType::Fixed
+        && link.collisions.empty()
+        && link.visuals.empty()
+        && !link.inertial.present;
+}
 
 btTypedConstraint* makeJointConstraint(const Joint& joint,
                                         btRigidBody& bodyA, btRigidBody& bodyB,
@@ -158,7 +210,8 @@ btRigidBody* findBody(const BuildResult& result, const std::string& linkName)
     return nullptr;
 }
 
-BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const btTransform& rootTransform)
+BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const btTransform& rootTransform,
+                        bool calculateCollisionInertia, double collisionDensity)
 {
     BuildResult result;
 
@@ -177,19 +230,36 @@ BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const
         PendingLink cur = stack.top();
         stack.pop();
 
+        if (isWeldedAway(*cur.link, cur.incomingJoint)) {
+            // No body for this link: fold its joint into whatever real body
+            // its own children eventually reach. cur.linkFrame already is
+            // this link's fully composed world frame, so the children's
+            // linkFrame composition (below) needs no special-casing — only
+            // parentBody must skip over this link, forwarding the same real
+            // ancestor its own incomingJoint edge came from.
+            for (Joint* joint : cur.link->joints) {
+                if (joint->parentLink != cur.link) continue;
+                stack.push({ joint->childLink, cur.linkFrame * toBtTransform(joint->origin), joint, cur.parentBody });
+            }
+            continue;
+        }
+
         btTransform comLocal = cur.link->inertial.present ? toBtTransform(cur.link->inertial.origin) : btTransform::getIdentity();
         btTransform comLocalInverse = comLocal.inverse();
         btTransform bodyWorldTransform = cur.linkFrame * comLocal;
 
         btCollisionShape* shape = buildLinkShape(*cur.link, comLocalInverse, result.shapes);
 
-        double mass = cur.link->inertial.present ? cur.link->inertial.mass : 0.0;
+        double mass;
         btVector3 localInertia(0, 0, 0);
-        if (mass > 0.0) {
+        if (cur.link->inertial.present) {
+            mass = cur.link->inertial.mass;
             localInertia = btVector3((btScalar)cur.link->inertial.ixx, (btScalar)cur.link->inertial.iyy, (btScalar)cur.link->inertial.izz);
-            if (localInertia.fuzzyZero())
-                shape->calculateLocalInertia((btScalar)mass, localInertia);
+        } else {
+            mass = collisionDensity > 0.0 ? collisionDensity * linkCollisionVolume(*cur.link) : 0.0;
         }
+        if (mass > 0.0 && localInertia.fuzzyZero() && calculateCollisionInertia)
+            shape->calculateLocalInertia((btScalar)mass, localInertia);
 
         auto* motionState = new btDefaultMotionState(bodyWorldTransform);
         btRigidBody::btRigidBodyConstructionInfo ci((btScalar)mass, motionState, shape, localInertia);
@@ -216,12 +286,14 @@ BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const
             result.collisions.push_back(std::move(ci));
         }
 
-        // The edge that reached this link connects two now-existing bodies.
+        // The edge that reached this link connects two now-existing bodies —
+        // cur.parentBody may be several welded-away links back up the chain,
+        // so its frame is derived from that body's actual world transform
+        // (already set from its motion state) rather than re-deriving it
+        // through any single joint's <origin>, which by itself would only
+        // account for the last hop.
         if (cur.incomingJoint) {
-            // The joint frame coincides with the child link's frame, so
-            // from the parent's side it's offset by the joint's <origin>;
-            // from the child's side there's no additional offset.
-            btTransform frameInA = cur.parentComLocalInverse * toBtTransform(cur.incomingJoint->origin);
+            btTransform frameInA = cur.parentBody->getWorldTransform().inverse() * cur.linkFrame;
             btTransform frameInB = comLocalInverse;
             btTypedConstraint* constraint =
                 makeJointConstraint(*cur.incomingJoint, *cur.parentBody, *body, frameInA, frameInB);
@@ -231,7 +303,7 @@ BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const
 
         for (Joint* joint : cur.link->joints) {
             if (joint->parentLink != cur.link) continue; // only follow edges down to children
-            stack.push({ joint->childLink, cur.linkFrame * toBtTransform(joint->origin), joint, body, comLocalInverse });
+            stack.push({ joint->childLink, cur.linkFrame * toBtTransform(joint->origin), joint, body });
         }
     }
 

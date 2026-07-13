@@ -122,7 +122,12 @@ private:
 
     void buildChamber(glm::vec3 dims);
     void buildPillars();
-    void buildPuppet(const std::string& urdfPath);
+    // calculateCollisionInertia/collisionDensity: see buildRobot() in
+    // urdf_to_bullet.h. Defaults (false, 0.0) match puppet.urdf having no
+    // <inertial> anywhere — every link stays static/mass-0.
+    void buildPuppet(const std::string& urdfPath,
+                      bool calculateCollisionInertia = false,
+                      double collisionDensity = 0.0);
 
     // Puppet URDF
     urdf::BuildResult          puppetBuild_;
