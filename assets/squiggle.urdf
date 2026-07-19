@@ -1,46 +1,108 @@
 <?xml version='1.0' encoding='cp1252'?>
 <robot name="squiggle">
 
-	<link name="link1">
+	<link name="link1-rotor">
 		<collision>
-			<origin xyz="-0.5 0 0" rpy = "0 0 0" />
+			<origin xyz="0 0 0" rpy = "0 0 0" />
 			<geometry>
-				<box size = "1 0.1 0.1" />
+				<cylinder radius="0.1" length="0.1" />
 			</geometry>
 		</collision>
 	</link>
 
-	<link name="link2">
+	<link name="link1-bone">
 		<collision>
-			<origin xyz="0.5 0 0" rpy = "0 0 0" />
+			<origin xyz="0.5 0 0" />
 			<geometry>
-				<box size = "1 0.1 0.1" />
+				<box  size="1 0.1 0.1"/>
 			</geometry>
 		</collision>
 	</link>
 
-    <joint name="q1" type="continuous">
-        <parent link="link1" />
-        <child link="link2" />
-        <origin xyz="0 0 0" rpy="0 0 0" />
-        <axis xyz="0 0 1" />
-    </joint>
+	<joint name="link1-rotor-to-bone" type="fixed">
+		<parent link = "link1-rotor"/>
+		<child link = "link1-bone"/>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+	</joint>
 
-	<link name="link3">
+
+	<link name="link1-stator">
 		<collision>
-			<origin xyz="0.5 0 0" rpy = "0 0 0" />
+			<origin xyz="0 0 0" rpy = "0 0 0" />
 			<geometry>
-				<box size = "1 0.1 0.1" />
+				<cylinder radius="0.1" length="0.1" />
 			</geometry>
 		</collision>
 	</link>
 
-    <joint name="q2" type="continuous">
-        <parent link="link2" />
-        <child link="link3" />
-        <origin xyz="1 0 0" rpy="0 0 0" />
-        <axis xyz="0 0 1" />
-    </joint>
+	<joint name="link1-bone-to-stator" type="fixed">
+		<parent link = "link1-bone"/>
+		<child link = "link1-stator"/>
+		<origin xyz="1 0 0" rpy="0 0 0"/>
+	</joint>
+
+
+
+
+	<joint name = "q1" type="continuous">
+		<parent link= "link1-stator"/>
+		<child link = "link2-rotor"/>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+		<axis xyz="0 0 1" />
+	</joint>
+
+
+	<link name="link2-rotor">
+		<collision>
+			<origin xyz="0 0 0" rpy = "0 0 0" />
+			<geometry>
+				<cylinder radius="0.1" length="0.1" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="link2-bone">
+		<collision>
+			<origin xyz="0.5 0 0" />
+			<geometry>
+				<box  size="1 0.1 0.1"/>
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="link2-rotor-to-bone" type="fixed">
+		<parent link = "link2-rotor"/>
+		<child link = "link2-bone"/>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+	</joint>
+
+
+	<link name="link2-stator">
+		<collision>
+			<origin xyz="0 0 0" rpy = "0 0 0" />
+			<geometry>
+				<cylinder radius="0.1" length="0.1" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="link2-bone-to-stator" type="fixed">
+		<parent link = "link2-bone"/>
+		<child link = "link2-stator"/>
+		<origin xyz="1 0 0" rpy="0 0 0"/>
+	</joint>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 </robot>
