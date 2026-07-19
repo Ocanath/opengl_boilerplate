@@ -16,6 +16,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <thread>
+#include "DynamicRobot.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -41,8 +42,9 @@ Scene::Scene()
 
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
-    buildPuppet("assets/squiggle.urdf", true, 1000.0);
-
+    // buildPuppet("assets/squiggle.urdf", true, 1000.0);
+	DynamicRobot squiggle("assets/squiggle.urdf");
+	
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
     lightingShader_ = std::make_unique<Shader>("shaders/lighting.vert", "shaders/lighting.frag");

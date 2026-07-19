@@ -43,12 +43,12 @@ void EncoderManager::pollLoop()
 			int rc = enc_arm[i]->read_angle();
 			if(rc != DARTT_PROTOCOL_SUCCESS)
 			{
-				printf("Failed to read encoder %d: code %d\n", i, rc);
+				// printf("Failed to read encoder %d: code %d\n", i, rc);
 			}
 			std::lock_guard<std::mutex> lk (mutex_);
 			thetas_[i] = enc_arm[i]->theta;
 		}
-		printf("[%f, %f]\n", enc_arm[0]->theta, enc_arm[1]->theta);
+		// printf("[%f, %f]\n", enc_arm[0]->theta, enc_arm[1]->theta);
         // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
