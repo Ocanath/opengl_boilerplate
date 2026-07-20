@@ -65,7 +65,7 @@ void DynamicRobot::assignRoot(void)
 		Link * curlink = links_[i];
 		for(size_t j = 0; j < curlink->joints.size(); j++)
 		{
-			Joint * curjoint = curlink->joints[i];
+			Joint * curjoint = curlink->joints[j];
 			if(curjoint->childLink == curlink)
 			{
 				hasParent = true;
@@ -106,6 +106,99 @@ DynamicRobot::~DynamicRobot()
 		delete joints_[i];
 	}
 }
+
+//supernode
+typedef struct SuperLink
+{
+	std::vector<Link *> links;
+}SuperLink;
+
+// Linear scan for which supernode currently owns `link`, same tradeoff as
+// findLinkByName: URDFs are small, so this is simpler than tracking a
+// separate index alongside each stack entry.
+size_t findSupernodeIdx(const std::vector<SuperLink> & supernodes, Link * link)
+{
+	for(size_t i = 0; i < supernodes.size(); i++)
+	{
+		for(size_t j = 0; j < supernodes[i].links.size(); j++)
+		{
+			if(supernodes[i].links[j] == link)
+			{
+				return i;
+			}
+		}
+	}
+	return supernodes.size();
+}
+
+
+void DynamicRobot::weld_joints(void)
+{
+	std::vector<SuperLink> supernodes;
+	if(root_ == NULL)
+	{
+		return;
+	}
+	supernodes.push_back(SuperLink{});
+	supernodes[0].links.push_back(root_);
+
+	std::stack<Link*> stack;
+	stack.push(root_);
+
+	while(!stack.empty())
+	{
+		Link * cur = stack.top();
+		stack.pop();
+
+		if(cur == NULL)
+		{
+			return;
+		}
+		printf("Current node: %s\n", cur->name.c_str());
+
+		size_t cur_supernode = findSupernodeIdx(supernodes, cur);
+
+		for(size_t joint_idx = 0; joint_idx < cur->joints.size(); joint_idx++)
+		{
+			Joint * joint = cur->joints[joint_idx];
+			printf("    has joint %s\n", joint->name.c_str());
+
+			if(joint->parentLink == cur)
+			{
+				Link * child = joint->childLink;
+				if(joint->type == JointType::Fixed)
+				{
+					supernodes[cur_supernode].links.push_back(child);
+				}
+				else
+				{
+					supernodes.push_back(SuperLink{});
+					supernodes.back().links.push_back(child);
+				}
+				stack.push(child);
+			}
+			else if(joint->childLink == cur)
+			{
+				//skip
+			}
+			else
+			{
+				return;
+			}
+		}
+	}
+
+	printf("\n--- Welded supernodes (%zu) ---\n", supernodes.size());
+	for(size_t i = 0; i < supernodes.size(); i++)
+	{
+		printf("Supernode %zu:\n", i);
+		for(size_t j = 0; j < supernodes[i].links.size(); j++)
+		{
+			printf("    %s\n", supernodes[i].links[j]->name.c_str());
+		}
+	}
+}
+
 
 
 

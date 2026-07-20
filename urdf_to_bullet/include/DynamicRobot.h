@@ -15,6 +15,7 @@ class DynamicRobot
 		DynamicRobot(const std::string & path);
 		~DynamicRobot();
 		void traverse_tree_dfs(void);	//test
+		void weld_joints(void);
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;
