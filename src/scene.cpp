@@ -43,7 +43,7 @@ Scene::Scene()
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
     // buildPuppet("assets/puppet.urdf", true, 1000.0);
-	puppet_.emplace("assets/puppet.urdf", btVector3(0, -50, 5), "", 100.f, 10.0);
+	puppet_.emplace("assets/puppet.urdf", btVector3(0, -50, 5), "", 100.f, 10.0, 0.3);
 	puppet_->buildBulletRobot(dynamicsWorld_);
 	// puppet_->traverse_tree_dfs();
 

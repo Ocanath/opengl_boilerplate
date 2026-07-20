@@ -72,6 +72,10 @@ struct BuildResult {
     // Name -> body, in the order bodies were created. Robots are small, so a
     // linear scan (see findBody() below) is simpler than a lookup table.
     std::vector<std::pair<std::string, btRigidBody*>> bodiesByLinkName;
+    // Joint name -> the constraint built for it. Only non-Fixed joints get an
+    // entry (a Fixed joint's constraint, if any, has nothing to drive — same
+    // reasoning DynamicRobot uses to weld Fixed joints away entirely).
+    std::vector<std::pair<std::string, btTypedConstraint*>> constraintsByJointName;
     std::vector<btRigidBody*>       bodies;
     std::vector<btCollisionShape*>  shapes;
     std::vector<btTypedConstraint*> constraints;
@@ -82,6 +86,11 @@ struct BuildResult {
 // Linear scan for the body created for the link named `linkName`. Returns
 // nullptr if there's no such link.
 btRigidBody* findBody(const BuildResult& result, const std::string& linkName);
+
+// Linear scan for the constraint built for the joint named `jointName`.
+// Returns nullptr if there's no such joint (or it was Fixed and never got a
+// name entry — see BuildResult::constraintsByJointName).
+btTypedConstraint* findConstraint(const BuildResult& result, const std::string& jointName);
 
 // Builds one btRigidBody per link (added to `world`) and one btTypedConstraint
 // per joint (added to `world`), starting from robot.root() and placing it at

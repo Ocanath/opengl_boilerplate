@@ -22,8 +22,9 @@ void DynamicRobot::addJoint(const XMLElement * xml_joint)
 }
 
 DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition,
-                           const std::string & meshBaseDir, double collisionDensity, double scale)
-	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity), scale_(scale)
+                           const std::string & meshBaseDir, double collisionDensity, double scale,
+                           double jointDamping)
+	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity), scale_(scale), jointDamping_(jointDamping)
 {
 	rootTransform_.setOrigin(spawnPosition);
 
@@ -456,6 +457,17 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 			btTypedConstraint * constraint = makeJointConstraint(*sn.parentBoundaryJoint, *parentBody, *sn.body, frameInA, frameInB);
 			world->addConstraint(constraint, /*disableCollisionsBetweenLinkedBodies=*/true);
 			buildResult_.constraints.push_back(constraint);
+			buildResult_.constraintsByJointName.push_back({sn.parentBoundaryJoint->name, constraint});
+
+			// Bullet constraints are frictionless by default: a hinge's free
+			// axis has no resistance at all unless something adds it. A
+			// standing motor targeting 0 velocity is that "something" — a
+			// bounded resistive brake, same motor setJointVelocity()/
+			// setJointTargetAngle() reconfigure for actual control.
+			if(jointDamping_ > 0.0 && constraint->getConstraintType() == HINGE_CONSTRAINT_TYPE)
+			{
+				static_cast<btHingeConstraint*>(constraint)->enableAngularMotor(true, 0.0f, (btScalar)jointDamping_);
+			}
 		}
 	}
 
@@ -475,6 +487,41 @@ void DynamicRobot::renderCollision(Shader & shader) const
 	if(render_)
 	{
 		render_->drawCollision(shader);
+	}
+}
+
+static btHingeConstraint * findHingeJoint(const BuildResult & buildResult, const std::string & jointName, const char * caller)
+{
+	btTypedConstraint * constraint = findConstraint(buildResult, jointName);
+	if(constraint == nullptr)
+	{
+		printf("%s: no joint named %s\n", caller, jointName.c_str());
+		return nullptr;
+	}
+	if(constraint->getConstraintType() != HINGE_CONSTRAINT_TYPE)
+	{
+		printf("%s: joint %s exists but isn't a hinge (revolute/continuous)\n", caller, jointName.c_str());
+		return nullptr;
+	}
+	return static_cast<btHingeConstraint*>(constraint);
+}
+
+void DynamicRobot::setJointVelocity(const std::string & jointName, double velocity, double maxImpulse)
+{
+	btHingeConstraint * hinge = findHingeJoint(buildResult_, jointName, "setJointVelocity");
+	if(hinge != nullptr)
+	{
+		hinge->enableAngularMotor(true, (btScalar)velocity, (btScalar)maxImpulse);
+	}
+}
+
+void DynamicRobot::setJointTargetAngle(const std::string & jointName, double targetAngle, double dt, double maxImpulse)
+{
+	btHingeConstraint * hinge = findHingeJoint(buildResult_, jointName, "setJointTargetAngle");
+	if(hinge != nullptr)
+	{
+		hinge->setMaxMotorImpulse((btScalar)maxImpulse);
+		hinge->setMotorTarget((btScalar)targetAngle, (btScalar)dt);
 	}
 }
 

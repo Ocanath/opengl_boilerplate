@@ -31,8 +31,16 @@ class DynamicRobot
 		// units. Mass/inertia naturally come out based on the *scaled*
 		// volumes, since they're computed from this same (already-scaled)
 		// geometry data.
+		// jointDamping: 0 (default) leaves every hinge frictionless, same as
+		// Bullet's own default. Nonzero gives every revolute/continuous
+		// joint a standing motor targeting 0 velocity with this as its max
+		// impulse — a bounded resistive brake, since Bullet constraints have
+		// no built-in friction otherwise. setJointVelocity()/
+		// setJointTargetAngle() just reconfigure that same motor for
+		// deliberate control.
 		DynamicRobot(const std::string & path, const btVector3 & spawnPosition = btVector3(0, 0, 0),
-		             const std::string & meshBaseDir = "", double collisionDensity = 0.0, double scale = 1.0);
+		             const std::string & meshBaseDir = "", double collisionDensity = 0.0, double scale = 1.0,
+		             double jointDamping = 0.0);
 		~DynamicRobot();
 		void traverse_tree_dfs(void);	//test
 		void buildBulletRobot(btDiscreteDynamicsWorld * world);
@@ -42,6 +50,22 @@ class DynamicRobot
 		// buildBulletRobot() has run — that's what builds render_.
 		void render(Shader & shader) const;
 		void renderCollision(Shader & shader) const;
+
+		// Hinge (revolute/continuous) joint control, looked up by <joint
+		// name="...">. No-op (prints a warning) if jointName doesn't exist or
+		// isn't a hinge. Both just reconfigure the same motor jointDamping
+		// (if nonzero) already enabled on every hinge.
+		//
+		// velocity: rad/s, positive per the joint's own <axis>. maxImpulse
+		// bounds how hard the motor can push per solver substep — the
+		// smaller of the two limits how fast/strongly the joint can move.
+		void setJointVelocity(const std::string & jointName, double velocity, double maxImpulse);
+
+		// Convenience position control: drives toward targetAngle (radians)
+		// over the next `dt` seconds — call this every physics step with the
+		// simulation's fixed timestep, same contract as
+		// btHingeConstraint::setMotorTarget().
+		void setJointTargetAngle(const std::string & jointName, double targetAngle, double dt, double maxImpulse);
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;
@@ -53,6 +77,7 @@ class DynamicRobot
 		double collisionDensity_ = 0.0;
 		double scale_ = 1.0;
 		bool scaled_ = false; // guards against re-applying scale_ if buildBulletRobot() is ever called twice
+		double jointDamping_ = 0.0;
 		std::optional<UrdfRender> render_;
 
 		void addLink(const XMLElement * link);

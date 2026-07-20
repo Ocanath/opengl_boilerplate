@@ -216,6 +216,13 @@ btRigidBody* findBody(const BuildResult& result, const std::string& linkName)
     return nullptr;
 }
 
+btTypedConstraint* findConstraint(const BuildResult& result, const std::string& jointName)
+{
+    for (const auto& entry : result.constraintsByJointName)
+        if (entry.first == jointName) return entry.second;
+    return nullptr;
+}
+
 BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const btTransform& rootTransform,
                         bool calculateCollisionInertia, double collisionDensity)
 {
@@ -305,6 +312,8 @@ BuildResult buildRobot(const Robot& robot, btDiscreteDynamicsWorld* world, const
                 makeJointConstraint(*cur.incomingJoint, *cur.parentBody, *body, frameInA, frameInB);
             world->addConstraint(constraint, /*disableCollisionsBetweenLinkedBodies=*/true);
             result.constraints.push_back(constraint);
+            if (cur.incomingJoint->type != JointType::Fixed)
+                result.constraintsByJointName.push_back({cur.incomingJoint->name, constraint});
         }
 
         for (Joint* joint : cur.link->joints) {
