@@ -1,22 +1,20 @@
 #include "DynamicRobot.h"
-
+#include "urdf_to_bullet/urdf_parser.h"
 
 void DynamicRobot::addLink(const XMLElement * xml_link)
 {
 	Link * link = new Link;
-
-	link->name = xml_link->Attribute("name");
+	parseLink(xml_link, link);
 	printf("Adding link %s\n", link->name.c_str());
-
 	links_.push_back(link);
 }
 
 void DynamicRobot::addJoint(const XMLElement * xml_joint)
 {
 	Joint * joint = new Joint;
-	joint->name = xml_joint->Attribute("name");
-	printf("Adding joint %s\n", joint->name.c_str());
 
+	parseJoint(xml_joint, links_, joint);
+	printf("Added joint %s\n", joint->name.c_str());
 	joints_.push_back(joint);
 }
 
@@ -64,3 +62,16 @@ DynamicRobot::~DynamicRobot()
 		delete joints_[i];
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
