@@ -1,5 +1,6 @@
 #include "DynamicRobot.h"
 #include "urdf_to_bullet/urdf_parser.h"
+#include <stack>
 
 void DynamicRobot::addLink(const XMLElement * xml_link)
 {
@@ -46,8 +47,36 @@ DynamicRobot::DynamicRobot(const std::string & path)
 	for(const XMLElement * joint = root->FirstChildElement("joint"); joint; joint = joint->NextSiblingElement("joint"))
 	{
 		addJoint(joint);
-	}	
+	}
+	root_ = nullptr;
+	assignRoot();
+	if(root_ != nullptr)
+	{
+		printf("Identified %s as root\n", root_->name.c_str());
+	}
+}
 
+void DynamicRobot::assignRoot(void)
+{
+	for(size_t i = 0; i < links_.size(); i++)
+	{
+		bool hasParent = false;
+		Link * curlink = links_[i];
+		for(size_t j = 0; j < curlink->joints.size(); j++)
+		{
+			Joint * curjoint = curlink->joints[i];
+			if(curjoint->childLink == curlink)
+			{
+				hasParent = true;
+				break;
+			}
+		}
+		if(hasParent == false)
+		{
+			root_ = curlink;
+			return;
+		}
+	}
 }
 
 DynamicRobot::~DynamicRobot()
@@ -66,12 +95,28 @@ DynamicRobot::~DynamicRobot()
 
 
 
+void DynamicRobot::traverse_tree_dfs(void)
+{
+	std::stack<Link*> stack;
+	stack.push(root_);
 
+	while(!stack.empty())
+	{
+		Link * cur = stack.top();
+		stack.pop();
 
+		if(cur == NULL)
+		{
+			return;
+		}
+		printf("Current node: %s\n", cur->name.c_str());
 
-
-
-
-
+		for(size_t joint_idx = 0; joint_idx < cur->joints.size(); joint_idx++)
+		{
+			Joint * joint = cur->joints[joint_idx];
+			printf("    has joint %s\n", joint->name.c_str());
+		}
+	}
+}
 
 

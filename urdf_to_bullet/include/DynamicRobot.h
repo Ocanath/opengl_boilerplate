@@ -14,6 +14,7 @@ class DynamicRobot
 		XMLDocument doc;
 		DynamicRobot(const std::string & path);
 		~DynamicRobot();
+		void traverse_tree_dfs(void);	//test
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;
@@ -21,7 +22,7 @@ class DynamicRobot
 
 		void addLink(const XMLElement * link);
 		void addJoint(const XMLElement * xml_joint);
-
+		void assignRoot(void);
 
 };
 

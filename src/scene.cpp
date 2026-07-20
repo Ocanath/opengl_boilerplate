@@ -44,7 +44,7 @@ Scene::Scene()
     buildPillars();
     // buildPuppet("assets/squiggle.urdf", true, 1000.0);
 	DynamicRobot squiggle("assets/squiggle.urdf");
-	
+	squiggle.traverse_tree_dfs();
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
     lightingShader_ = std::make_unique<Shader>("shaders/lighting.vert", "shaders/lighting.frag");
