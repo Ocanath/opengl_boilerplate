@@ -5,8 +5,7 @@
 
 using tinyxml2::XMLDocument;
 using tinyxml2::XMLElement;
-namespace urdf {
-
+using namespace urdf;
 
 class DynamicRobot
 {
@@ -14,11 +13,15 @@ class DynamicRobot
 		std::string name;
 		XMLDocument doc;
 		DynamicRobot(const std::string & path);
+		~DynamicRobot();
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;
 		Link * root_ = nullptr;
+
+		void addLink(const XMLElement * link);
+		void addJoint(const XMLElement * xml_joint);
 };
 
-}
+
 
