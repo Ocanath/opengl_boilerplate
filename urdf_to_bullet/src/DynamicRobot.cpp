@@ -21,22 +21,22 @@ void DynamicRobot::addJoint(const XMLElement * xml_joint)
 	joints_.push_back(joint);
 }
 
-DynamicRobot::DynamicRobot(const std::string & path)
+DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition)
 {
+	rootTransform_.setOrigin(spawnPosition);
+
 	if(doc.LoadFile(path.c_str()) != tinyxml2::XML_SUCCESS)
 	{
 		printf("Failed to load document %s\n", path.c_str());
+		return;
 	}
-	else
-	{
-		printf("Successfully loaded document: %s\n", path.c_str());
-	}
-
+	printf("Successfully loaded document: %s\n", path.c_str());
 
 	XMLElement * root = doc.RootElement();
 	if(!root || std::string(root->Name()) != "robot")
 	{
 		printf("improper urdf type\n");
+		return;
 	}
 
 	name = root->Attribute("name");
@@ -51,12 +51,12 @@ DynamicRobot::DynamicRobot(const std::string & path)
 		addJoint(joint);
 	}
 	root_ = nullptr;
+	assignJoints();
 	assignRoot();
 	if(root_ != nullptr)
 	{
 		printf("Identified %s as root\n", root_->name.c_str());
 	}
-	assignJoints();
 }
 
 void DynamicRobot::assignRoot(void)
@@ -149,10 +149,10 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 	std::vector<SuperLink> supernodes;
 	supernodes.push_back(SuperLink{});
 	supernodes[0].members.push_back({root_, btTransform::getIdentity()});
-	supernodes[0].worldFrame = btTransform::getIdentity();
+	supernodes[0].worldFrame = rootTransform_;
 
 	std::stack<PendingWeldLink> stack;
-	stack.push({root_, btTransform::getIdentity(), btTransform::getIdentity(), 0});
+	stack.push({root_, rootTransform_, btTransform::getIdentity(), 0});
 
 	while(!stack.empty())
 	{
