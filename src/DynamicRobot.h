@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <vector>
 #include <optional>
@@ -39,6 +40,7 @@ class DynamicRobot
 		std::vector<Joint*> joints_;
 		Link * root_ = nullptr;
 		BuildResult buildResult_;
+		btDiscreteDynamicsWorld * world_ = nullptr; // set by buildBulletRobot(); ~DynamicRobot() uses it to tear buildResult_ back out of the world
 		btTransform rootTransform_ = btTransform::getIdentity();
 		std::string meshBaseDir_;
 		double collisionDensity_ = 0.0;

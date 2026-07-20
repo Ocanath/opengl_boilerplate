@@ -9,6 +9,7 @@
 #include "light.h"
 #include "dynamic_arm.h"
 #include "encoder_manager.h"
+#include "asset_library.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -367,6 +368,12 @@ int main()
 
     g_scene = nullptr;
     } // scene destroyed here — GL context still live
+
+    // asset_library's Model caches are process-lifetime statics, not owned
+    // by Scene — without this they'd be destroyed after main() returns,
+    // i.e. after the context below is gone, and ~Mesh()'s glDelete* calls
+    // would run against a dead context.
+    clearAssetCache();
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();

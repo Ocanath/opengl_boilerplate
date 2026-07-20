@@ -101,6 +101,10 @@ void DynamicRobot::assignJoints(void)
 DynamicRobot::~DynamicRobot()
 {
 	printf("Tearing down %s\n", name.c_str());
+	if(world_ != nullptr)
+	{
+		destroyBuildResult(buildResult_, world_);
+	}
 	for(size_t i = 0; i < links_.size(); i++)
 	{
 		delete links_[i];
@@ -144,6 +148,7 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 	{
 		return;
 	}
+	world_ = world;
 
 	// Phase 1: group every link into a supernode by walking Fixed joints as
 	// "still the same body" and every other joint type as "starts a new
@@ -307,10 +312,19 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 				mass += childMasses[c];
 			}
 
-			compound->calculatePrincipalAxisTransform(childMasses.data(), principal, localInertia);
-			for(int c = 0; c < compound->getNumChildShapes(); c++)
+			// calculatePrincipalAxisTransform divides by total mass to find
+			// the weighted centroid — guard against 0 (collisionDensity_ ==
+			// 0 and no member has an explicit <inertial>), which is exactly
+			// the "allow zero-mass/static bodies" case from before. principal
+			// stays identity and localInertia stays zero, same as any other
+			// massless body.
+			if(mass > 0.0)
 			{
-				compound->updateChildTransform(c, principal.inverse() * compound->getChildTransform(c), true);
+				compound->calculatePrincipalAxisTransform(childMasses.data(), principal, localInertia);
+				for(int c = 0; c < compound->getNumChildShapes(); c++)
+				{
+					compound->updateChildTransform(c, principal.inverse() * compound->getChildTransform(c), true);
+				}
 			}
 
 			shape = compound;

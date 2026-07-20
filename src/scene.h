@@ -15,6 +15,7 @@
 #include "ability.h"
 #include "dynamic_arm.h"
 #include "urdf_render.h"
+#include "DynamicRobot.h"
 
 struct ImDrawList;
 
@@ -134,6 +135,9 @@ private:
     std::optional<UrdfRender>  puppetRender_;
     bool showPuppetVisual_    = false;
     bool showPuppetCollision_ = true;
+
+    // Debug squiggle URDF — collision-only rendering for now
+    std::optional<DynamicRobot> squiggle_;
 
     // ── Deferred rendering ────────────────────────────────────────────────
     // G-buffer

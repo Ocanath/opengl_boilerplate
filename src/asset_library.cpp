@@ -9,11 +9,31 @@
 
 namespace {
 constexpr float kPi = 3.14159265358979323846f;
+
+// Function-local statics (not file-scope globals) so each cache still only
+// gets constructed on first use, same as before — just reachable from
+// clearAssetCache() too, since that needs to touch all three from outside
+// any one of the getCached*Model() functions.
+std::unordered_map<std::string, std::unique_ptr<Model>>& meshCache()
+{
+    static std::unordered_map<std::string, std::unique_ptr<Model>> cache;
+    return cache;
+}
+std::unordered_map<int, std::unique_ptr<Model>>& cylinderCache()
+{
+    static std::unordered_map<int, std::unique_ptr<Model>> cache;
+    return cache;
+}
+std::unordered_map<long long, std::unique_ptr<Model>>& sphereCache()
+{
+    static std::unordered_map<long long, std::unique_ptr<Model>> cache;
+    return cache;
+}
 }
 
 Model* getCachedMeshModel(const std::string& path)
 {
-    static std::unordered_map<std::string, std::unique_ptr<Model>> cache;
+    auto& cache = meshCache();
     auto it = cache.find(path);
     if (it != cache.end()) return it->second.get();
     return cache.emplace(path, std::make_unique<Model>(path)).first->second.get();
@@ -114,7 +134,7 @@ static Mesh buildSphereMesh(int rings, int sectors)
 
 Model* getCachedCylinderModel(int segments)
 {
-    static std::unordered_map<int, std::unique_ptr<Model>> cache;
+    auto& cache = cylinderCache();
     auto it = cache.find(segments);
     if (it != cache.end()) return it->second.get();
 
@@ -125,7 +145,7 @@ Model* getCachedCylinderModel(int segments)
 
 Model* getCachedSphereModel(int rings, int sectors)
 {
-    static std::unordered_map<long long, std::unique_ptr<Model>> cache;
+    auto& cache = sphereCache();
     long long key = ((long long)rings << 32) | (unsigned int)sectors;
     auto it = cache.find(key);
     if (it != cache.end()) return it->second.get();
@@ -133,4 +153,11 @@ Model* getCachedSphereModel(int rings, int sectors)
     std::vector<Mesh> meshes;
     meshes.push_back(buildSphereMesh(rings, sectors));
     return cache.emplace(key, std::make_unique<Model>(std::move(meshes))).first->second.get();
+}
+
+void clearAssetCache()
+{
+    meshCache().clear();
+    cylinderCache().clear();
+    sphereCache().clear();
 }

@@ -28,3 +28,10 @@ Model* getCachedMeshModel(const std::string& path);
 Model* getCachedBoxModel();
 Model* getCachedCylinderModel(int segments = 24);
 Model* getCachedSphereModel(int rings = 16, int sectors = 24);
+
+// Releases every cached Model (and, transitively, its GPU buffers via
+// ~Mesh()) right now. The caches above are otherwise only torn down at true
+// process exit (after main() returns) — call this before destroying the GL
+// context (glfwDestroyWindow/glfwTerminate), or ~Mesh()'s glDelete* calls
+// run against a dead context.
+void clearAssetCache();
