@@ -42,10 +42,10 @@ Scene::Scene()
 
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
-    // buildPuppet("assets/squiggle.urdf", true, 1000.0);
-	squiggle_.emplace("assets/squiggle.urdf", btVector3(0, -50, 2), "", 1000.f);
-	squiggle_->buildBulletRobot(dynamicsWorld_);
-	// squiggle_->traverse_tree_dfs();
+    // buildPuppet("assets/puppet.urdf", true, 1000.0);
+	puppet_.emplace("assets/puppet.urdf", btVector3(0, -50, 5), "", 100.f, 10.0);
+	puppet_->buildBulletRobot(dynamicsWorld_);
+	// puppet_->traverse_tree_dfs();
 
 	// DynamicRobot puppet("assets/puppet.urdf");
 	// puppet.traverse_tree_dfs();
@@ -90,7 +90,7 @@ Scene::~Scene()
     // Remove collision bodies from world (in reverse dependency order)
     puppetRender_.reset();
     destroyBuildResult(puppetBuild_, dynamicsWorld_);
-    squiggle_.reset();        // ~DynamicRobot() tears its own buildResult_ out of dynamicsWorld_
+    puppet_.reset();        // ~DynamicRobot() tears its own buildResult_ out of dynamicsWorld_
     abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
     arm_.reset();
     lightBoxes_.clear();
@@ -605,9 +605,9 @@ void Scene::draw(int width, int height)
     if (puppetRender_ && showPuppetCollision_)
         puppetRender_->drawCollision(*gShader_);
 
-    // Debug squiggle URDF — collision-only for now
-    if (squiggle_)
-        squiggle_->renderCollision(*gShader_);
+    // Debug puppet URDF — collision-only for now
+    if (puppet_)
+        puppet_->renderCollision(*gShader_);
 
     // ── Pass 2: Lighting → default FBO ───────────────────────────────────────
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

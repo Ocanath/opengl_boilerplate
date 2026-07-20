@@ -136,8 +136,8 @@ private:
     bool showPuppetVisual_    = false;
     bool showPuppetCollision_ = true;
 
-    // Debug squiggle URDF — collision-only rendering for now
-    std::optional<DynamicRobot> squiggle_;
+    // Debug puppet URDF — collision-only rendering for now
+    std::optional<DynamicRobot> puppet_;
 
     // ── Deferred rendering ────────────────────────────────────────────────
     // G-buffer

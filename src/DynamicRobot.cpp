@@ -22,8 +22,8 @@ void DynamicRobot::addJoint(const XMLElement * xml_joint)
 }
 
 DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition,
-                           const std::string & meshBaseDir, double collisionDensity)
-	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity)
+                           const std::string & meshBaseDir, double collisionDensity, double scale)
+	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity), scale_(scale)
 {
 	rootTransform_.setOrigin(spawnPosition);
 
@@ -115,6 +115,79 @@ DynamicRobot::~DynamicRobot()
 	}
 }
 
+static void scalePose(Pose & pose, double scale)
+{
+	pose.xyz.x *= scale;
+	pose.xyz.y *= scale;
+	pose.xyz.z *= scale;
+	// rpy is angles, not lengths — not scaled.
+}
+
+static void scaleGeometry(Geometry & geom, double scale)
+{
+	geom.boxSize.x *= scale;
+	geom.boxSize.y *= scale;
+	geom.boxSize.z *= scale;
+	geom.cylinderRadius *= scale;
+	geom.cylinderLength *= scale;
+	geom.sphereRadius *= scale;
+	geom.meshScale.x *= scale;
+	geom.meshScale.y *= scale;
+	geom.meshScale.z *= scale;
+}
+
+// Uniformly rescales every length-dimensioned field in the parsed URDF data:
+// positions, box/cylinder/sphere dimensions, mesh scale, and (for physical
+// consistency) any explicit <inertial> mass/tensor. Deliberately mutates
+// links_/joints_ in place rather than threading a scale factor through
+// buildBulletRobot()'s shape/mass math — that math is already entirely
+// driven by this data, so scaling it here once is enough for volumes (and
+// hence density-derived mass) to come out scaled automatically.
+void DynamicRobot::applyScale(double scale)
+{
+	double scale3 = scale * scale * scale;
+	double scale5 = scale3 * scale * scale;
+
+	for(size_t i = 0; i < links_.size(); i++)
+	{
+		Link * link = links_[i];
+
+		scalePose(link->inertial.origin, scale);
+		link->inertial.mass *= scale3;
+		// ixx/iyy/izz (mass * length^2 -> scale^5) only matter for
+		// buildBulletRobot()'s no-collision-geometry fallback path —
+		// calculatePrincipalAxisTransform re-derives inertia from geometry
+		// + mass for every supernode that has collision geometry at all.
+		link->inertial.ixx *= scale5;
+		link->inertial.iyy *= scale5;
+		link->inertial.izz *= scale5;
+
+		for(size_t v = 0; v < link->visuals.size(); v++)
+		{
+			scalePose(link->visuals[v].origin, scale);
+			scaleGeometry(link->visuals[v].geometry, scale);
+		}
+		for(size_t c = 0; c < link->collisions.size(); c++)
+		{
+			scalePose(link->collisions[c].origin, scale);
+			scaleGeometry(link->collisions[c].geometry, scale);
+		}
+	}
+
+	for(size_t i = 0; i < joints_.size(); i++)
+	{
+		Joint * joint = joints_[i];
+		scalePose(joint->origin, scale);
+		// axis is a direction, not a length — not scaled.
+		if(joint->limit.present && joint->type == JointType::Prismatic)
+		{
+			joint->limit.lower *= scale;
+			joint->limit.upper *= scale;
+		}
+		// Revolute/Continuous limits are angles — not scaled.
+	}
+}
+
 // A set of links welded together by a chain of Fixed joints, destined to
 // become a single btRigidBody. `members[k].second` is that member link's
 // frame relative to `members[0]` (the entry link this supernode's boundary
@@ -149,6 +222,12 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 		return;
 	}
 	world_ = world;
+
+	if(!scaled_)
+	{
+		applyScale(scale_);
+		scaled_ = true;
+	}
 
 	// Phase 1: group every link into a supernode by walking Fixed joints as
 	// "still the same body" and every other joint type as "starts a new

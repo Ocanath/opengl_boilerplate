@@ -24,8 +24,15 @@ class DynamicRobot
 		// (and, from the shape, inertia) is derived from this density times
 		// that member's <collision> volume instead of defaulting to 0. 0
 		// (the default) keeps such members massless/static, same as before.
+		// scale: uniform dimensionless multiplier applied to every length in
+		// the parsed URDF (positions, box/cylinder/sphere dimensions, mesh
+		// scale) at the start of buildBulletRobot() — e.g. a URDF authored at
+		// its real (tiny) scale can be blown up to match this scene's world
+		// units. Mass/inertia naturally come out based on the *scaled*
+		// volumes, since they're computed from this same (already-scaled)
+		// geometry data.
 		DynamicRobot(const std::string & path, const btVector3 & spawnPosition = btVector3(0, 0, 0),
-		             const std::string & meshBaseDir = "", double collisionDensity = 0.0);
+		             const std::string & meshBaseDir = "", double collisionDensity = 0.0, double scale = 1.0);
 		~DynamicRobot();
 		void traverse_tree_dfs(void);	//test
 		void buildBulletRobot(btDiscreteDynamicsWorld * world);
@@ -44,12 +51,15 @@ class DynamicRobot
 		btTransform rootTransform_ = btTransform::getIdentity();
 		std::string meshBaseDir_;
 		double collisionDensity_ = 0.0;
+		double scale_ = 1.0;
+		bool scaled_ = false; // guards against re-applying scale_ if buildBulletRobot() is ever called twice
 		std::optional<UrdfRender> render_;
 
 		void addLink(const XMLElement * link);
 		void addJoint(const XMLElement * xml_joint);
 		void assignRoot(void);
 		void assignJoints(void);
+		void applyScale(double scale);
 
 };
 
