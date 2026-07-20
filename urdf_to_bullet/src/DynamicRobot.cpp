@@ -1,6 +1,8 @@
 #include "DynamicRobot.h"
 #include "urdf_to_bullet/urdf_parser.h"
 #include <stack>
+#include <btBulletDynamicsCommon.h>
+#include <BulletCollision/CollisionShapes/btEmptyShape.h>
 
 void DynamicRobot::addLink(const XMLElement * xml_link)
 {
@@ -107,94 +109,190 @@ DynamicRobot::~DynamicRobot()
 	}
 }
 
-//supernode
-typedef struct SuperLink
+// A set of links welded together by a chain of Fixed joints, destined to
+// become a single btRigidBody. `members[k].second` is that member link's
+// frame relative to `members[0]` (the entry link this supernode's boundary
+// joint reached, or root_ for the one supernode with no boundary joint at
+// all) — identity for members[0] itself, composed via joint origins for
+// everything reached through it by a Fixed joint.
+struct SuperLink
 {
-	std::vector<Link *> links;
-}SuperLink;
+	std::vector<std::pair<Link *, btTransform>> members;
+	size_t parentSupernodeIdx = (size_t)-1;   // index into the supernodes vector; -1 for the root's supernode
+	Joint * parentBoundaryJoint = nullptr;    // the non-Fixed joint connecting to the parent supernode; null for the root's supernode
+	btTransform worldFrame;                   // members[0]'s frame, in world space
+	btRigidBody * body = nullptr;             // set once this supernode's rigid body is built
+};
 
-// Linear scan for which supernode currently owns `link`, same tradeoff as
-// findLinkByName: URDFs are small, so this is simpler than tracking a
-// separate index alongside each stack entry.
-size_t findSupernodeIdx(const std::vector<SuperLink> & supernodes, Link * link)
+// One entry on the grouping DFS stack: carries which supernode `link` belongs
+// to and its frame relative to that supernode's entry link directly, so
+// there's no need to search supernodes for it after popping (same idiom as
+// buildRobot()'s PendingLink carrying parentBody/incomingJoint).
+struct PendingWeldLink
 {
-	for(size_t i = 0; i < supernodes.size(); i++)
-	{
-		for(size_t j = 0; j < supernodes[i].links.size(); j++)
-		{
-			if(supernodes[i].links[j] == link)
-			{
-				return i;
-			}
-		}
-	}
-	return supernodes.size();
-}
+	Link * link;
+	btTransform worldFrame;
+	btTransform localFrame;   // relative to this link's supernode's entry link
+	size_t supernodeIdx;
+};
 
-
-void DynamicRobot::weld_joints(void)
+void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 {
-	std::vector<SuperLink> supernodes;
 	if(root_ == NULL)
 	{
 		return;
 	}
-	supernodes.push_back(SuperLink{});
-	supernodes[0].links.push_back(root_);
 
-	std::stack<Link*> stack;
-	stack.push(root_);
+	// Phase 1: group every link into a supernode by walking Fixed joints as
+	// "still the same body" and every other joint type as "starts a new
+	// body". Same tree walk as traverse_tree_dfs, just carrying more state.
+	std::vector<SuperLink> supernodes;
+	supernodes.push_back(SuperLink{});
+	supernodes[0].members.push_back({root_, btTransform::getIdentity()});
+	supernodes[0].worldFrame = btTransform::getIdentity();
+
+	std::stack<PendingWeldLink> stack;
+	stack.push({root_, btTransform::getIdentity(), btTransform::getIdentity(), 0});
 
 	while(!stack.empty())
 	{
-		Link * cur = stack.top();
+		PendingWeldLink cur = stack.top();
 		stack.pop();
 
-		if(cur == NULL)
+		for(size_t joint_idx = 0; joint_idx < cur.link->joints.size(); joint_idx++)
 		{
-			return;
-		}
-		printf("Current node: %s\n", cur->name.c_str());
-
-		size_t cur_supernode = findSupernodeIdx(supernodes, cur);
-
-		for(size_t joint_idx = 0; joint_idx < cur->joints.size(); joint_idx++)
-		{
-			Joint * joint = cur->joints[joint_idx];
-			printf("    has joint %s\n", joint->name.c_str());
-
-			if(joint->parentLink == cur)
+			Joint * joint = cur.link->joints[joint_idx];
+			if(joint->parentLink != cur.link)
 			{
-				Link * child = joint->childLink;
-				if(joint->type == JointType::Fixed)
-				{
-					supernodes[cur_supernode].links.push_back(child);
-				}
-				else
-				{
-					supernodes.push_back(SuperLink{});
-					supernodes.back().links.push_back(child);
-				}
-				stack.push(child);
+				continue; // only follow edges down to children
 			}
-			else if(joint->childLink == cur)
+
+			btTransform childWorldFrame = cur.worldFrame * toBtTransform(joint->origin);
+
+			if(joint->type == JointType::Fixed)
 			{
-				//skip
+				btTransform childLocalFrame = cur.localFrame * toBtTransform(joint->origin);
+				supernodes[cur.supernodeIdx].members.push_back({joint->childLink, childLocalFrame});
+				stack.push({joint->childLink, childWorldFrame, childLocalFrame, cur.supernodeIdx});
 			}
 			else
 			{
-				return;
+				supernodes.push_back(SuperLink{});
+				size_t childIdx = supernodes.size() - 1;
+				supernodes[childIdx].parentSupernodeIdx = cur.supernodeIdx;
+				supernodes[childIdx].parentBoundaryJoint = joint;
+				supernodes[childIdx].worldFrame = childWorldFrame;
+				supernodes[childIdx].members.push_back({joint->childLink, btTransform::getIdentity()});
+				stack.push({joint->childLink, childWorldFrame, btTransform::getIdentity(), childIdx});
 			}
 		}
 	}
 
-	printf("\n--- Welded supernodes (%zu) ---\n", supernodes.size());
+	printf("Welded %zu link(s) into %zu supernode(s)\n", links_.size(), supernodes.size());
+
+	// Phase 2: one btRigidBody (with one btCompoundShape combining every
+	// member link's <collision> primitives) per supernode, and one
+	// btTypedConstraint per boundary joint. Processing supernodes in index
+	// order is safe because a supernode's index is only ever allocated while
+	// walking its already-indexed parent, so supernodes[i].parentSupernodeIdx
+	// < i always — the parent body already exists by the time we reach i.
+	buildResult_ = BuildResult{};
+
 	for(size_t i = 0; i < supernodes.size(); i++)
 	{
-		printf("Supernode %zu:\n", i);
-		for(size_t j = 0; j < supernodes[i].links.size(); j++)
+		SuperLink & sn = supernodes[i];
+
+		bool hasCollision = false;
+		for(size_t m = 0; m < sn.members.size(); m++)
 		{
-			printf("    %s\n", supernodes[i].links[j]->name.c_str());
+			if(!sn.members[m].first->collisions.empty())
+			{
+				hasCollision = true;
+				break;
+			}
+		}
+
+		btCollisionShape * shape;
+		if(!hasCollision)
+		{
+			btEmptyShape * empty = new btEmptyShape();
+			buildResult_.shapes.push_back(empty);
+			shape = empty;
+		}
+		else
+		{
+			btCompoundShape * compound = new btCompoundShape();
+			buildResult_.shapes.push_back(compound);
+			for(size_t m = 0; m < sn.members.size(); m++)
+			{
+				Link * member = sn.members[m].first;
+				const btTransform & memberFrame = sn.members[m].second;
+				for(size_t c = 0; c < member->collisions.size(); c++)
+				{
+					btCollisionShape * child = buildPrimitiveShape(member->collisions[c].geometry, buildResult_.shapes);
+					compound->addChildShape(memberFrame * toBtTransform(member->collisions[c].origin), child);
+				}
+			}
+			shape = compound;
+		}
+
+		// No inertial data in the debug URDFs this is built against yet, so
+		// this is deliberately simple: sum whatever <inertial> the member
+		// links do carry, default to 0 (static) otherwise. Doesn't account
+		// for the merged body's true center of mass — fine while every mass
+		// is 0, worth revisiting once real inertials show up.
+		double mass = 0.0;
+		btVector3 localInertia(0, 0, 0);
+		for(size_t m = 0; m < sn.members.size(); m++)
+		{
+			const Inertial & inertial = sn.members[m].first->inertial;
+			if(inertial.present)
+			{
+				mass += inertial.mass;
+				localInertia += btVector3((btScalar)inertial.ixx, (btScalar)inertial.iyy, (btScalar)inertial.izz);
+			}
+		}
+
+		btDefaultMotionState * motionState = new btDefaultMotionState(sn.worldFrame);
+		btRigidBody::btRigidBodyConstructionInfo rbInfo((btScalar)mass, motionState, shape, localInertia);
+		sn.body = new btRigidBody(rbInfo);
+		world->addRigidBody(sn.body);
+		buildResult_.bodies.push_back(sn.body);
+
+		for(size_t m = 0; m < sn.members.size(); m++)
+		{
+			Link * member = sn.members[m].first;
+			const btTransform & memberFrame = sn.members[m].second;
+			buildResult_.bodiesByLinkName.push_back({member->name, sn.body});
+
+			for(size_t v = 0; v < member->visuals.size(); v++)
+			{
+				VisualInstance vi;
+				vi.body = sn.body;
+				vi.geometry = member->visuals[v].geometry;
+				vi.material = member->visuals[v].material;
+				vi.localTransform = memberFrame * toBtTransform(member->visuals[v].origin);
+				buildResult_.visuals.push_back(std::move(vi));
+			}
+
+			for(size_t c = 0; c < member->collisions.size(); c++)
+			{
+				CollisionInstance ci;
+				ci.body = sn.body;
+				ci.geometry = member->collisions[c].geometry;
+				ci.localTransform = memberFrame * toBtTransform(member->collisions[c].origin);
+				buildResult_.collisions.push_back(std::move(ci));
+			}
+		}
+
+		if(sn.parentBoundaryJoint != nullptr)
+		{
+			btRigidBody * parentBody = supernodes[sn.parentSupernodeIdx].body;
+			btTransform frameInA = parentBody->getWorldTransform().inverse() * sn.worldFrame;
+			btTransform frameInB = btTransform::getIdentity();
+			btTypedConstraint * constraint = makeJointConstraint(*sn.parentBoundaryJoint, *parentBody, *sn.body, frameInA, frameInB);
+			world->addConstraint(constraint, /*disableCollisionsBetweenLinkedBodies=*/true);
+			buildResult_.constraints.push_back(constraint);
 		}
 	}
 }

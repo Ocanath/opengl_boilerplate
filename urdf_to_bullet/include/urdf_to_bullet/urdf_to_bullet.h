@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include <LinearMath/btTransform.h>
+#include <LinearMath/btVector3.h>
 #include "urdf_to_bullet/urdf_model.h"
 
 class btDiscreteDynamicsWorld;
@@ -11,6 +12,32 @@ class btCollisionShape;
 class btTypedConstraint;
 
 namespace urdf {
+
+// Pose/geometry/joint -> Bullet building blocks, exposed (rather than kept
+// file-local) so other build orchestrations can assemble bodies/constraints
+// without going through buildRobot()'s one-rigid-body-per-link assembly.
+// DynamicRobot uses these to build one rigid body per Fixed-joint-connected
+// group of links instead.
+btTransform toBtTransform(const Pose& pose);
+
+// A constraint frame whose local axis (Z for hinge, X for slider — the axes
+// btHingeConstraint/btSliderConstraint rotate/translate about) points along
+// `axis`.
+btTransform hingeFrame(const btVector3& axis);
+btTransform sliderFrame(const btVector3& axis);
+
+// Builds one btCollisionShape for a single <collision> primitive (box/
+// cylinder/sphere) and appends it to outShapes for later cleanup. Throws
+// std::runtime_error for Mesh geometry (urdf_parser rejects mesh <collision>
+// before this would ever be reached).
+btCollisionShape* buildPrimitiveShape(const Geometry& geom, std::vector<btCollisionShape*>& outShapes);
+
+// Maps a Joint to the matching btTypedConstraint (Fixed/Revolute/Continuous/
+// Prismatic -> btFixedConstraint/btHingeConstraint/.../btSliderConstraint),
+// applying <limit> where applicable. Caller owns the returned constraint.
+btTypedConstraint* makeJointConstraint(const Joint& joint,
+                                        btRigidBody& bodyA, btRigidBody& bodyB,
+                                        const btTransform& frameInA, const btTransform& frameInB);
 
 // A <visual> element, re-based from the link frame onto its rigid body's
 // actual origin (the link's center of mass) so a renderer can place it with

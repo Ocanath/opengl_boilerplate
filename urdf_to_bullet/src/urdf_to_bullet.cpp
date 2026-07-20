@@ -11,20 +11,6 @@ namespace {
 
 constexpr double kPi = 3.14159265358979323846;
 
-btTransform toBtTransform(const Pose& pose)
-{
-    btQuaternion rotation =
-        btQuaternion(btVector3(0, 0, 1), (btScalar)pose.rpy.z) *
-        btQuaternion(btVector3(0, 1, 0), (btScalar)pose.rpy.y) *
-        btQuaternion(btVector3(1, 0, 0), (btScalar)pose.rpy.x);
-
-    btTransform t;
-    t.setIdentity();
-    t.setRotation(rotation);
-    t.setOrigin(btVector3((btScalar)pose.xyz.x, (btScalar)pose.xyz.y, (btScalar)pose.xyz.z));
-    return t;
-}
-
 // A constraint frame whose local `axisColumn` axis (0 = X, 2 = Z) points
 // along `axis`. Used because btHingeConstraint rotates about local Z and
 // btSliderConstraint translates along local X.
@@ -51,6 +37,22 @@ btTransform axisAlignedFrame(const btVector3& axis, int axisColumn)
     btTransform t;
     t.setIdentity();
     t.setBasis(basis);
+    return t;
+}
+
+} // namespace
+
+btTransform toBtTransform(const Pose& pose)
+{
+    btQuaternion rotation =
+        btQuaternion(btVector3(0, 0, 1), (btScalar)pose.rpy.z) *
+        btQuaternion(btVector3(0, 1, 0), (btScalar)pose.rpy.y) *
+        btQuaternion(btVector3(1, 0, 0), (btScalar)pose.rpy.x);
+
+    btTransform t;
+    t.setIdentity();
+    t.setRotation(rotation);
+    t.setOrigin(btVector3((btScalar)pose.xyz.x, (btScalar)pose.xyz.y, (btScalar)pose.xyz.z));
     return t;
 }
 
@@ -81,6 +83,8 @@ btCollisionShape* buildPrimitiveShape(const Geometry& geom, std::vector<btCollis
     outShapes.push_back(shape);
     return shape;
 }
+
+namespace {
 
 // One shape per link: an (unshared) btCompoundShape holding every <collision>
 // primitive at its local offset from the body's origin (the link's center of
@@ -166,6 +170,8 @@ bool isWeldedAway(const Link& link, const Joint* incomingJoint)
         && !link.inertial.present;
 }
 
+} // namespace
+
 btTypedConstraint* makeJointConstraint(const Joint& joint,
                                         btRigidBody& bodyA, btRigidBody& bodyB,
                                         const btTransform& frameInA, const btTransform& frameInB)
@@ -200,8 +206,6 @@ btTypedConstraint* makeJointConstraint(const Joint& joint,
     }
     return nullptr; // unreachable: every JointType is handled above
 }
-
-} // namespace
 
 btRigidBody* findBody(const BuildResult& result, const std::string& linkName)
 {

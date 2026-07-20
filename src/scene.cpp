@@ -44,7 +44,7 @@ Scene::Scene()
     buildPillars();
     // buildPuppet("assets/squiggle.urdf", true, 1000.0);
 	DynamicRobot squiggle("assets/squiggle.urdf");
-	squiggle.weld_joints();
+	squiggle.buildBulletRobot(dynamicsWorld_);
 	// squiggle.traverse_tree_dfs();
 
 	// DynamicRobot puppet("assets/puppet.urdf");
