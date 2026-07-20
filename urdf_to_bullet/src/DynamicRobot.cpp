@@ -130,6 +130,18 @@ void DynamicRobot::traverse_tree_dfs(void)
 		{
 			Joint * joint = cur->joints[joint_idx];
 			printf("    has joint %s\n", joint->name.c_str());
+			if(joint->parentLink == cur)
+			{
+				stack.push(joint->childLink);
+			}
+			else if(joint->childLink == cur)
+			{
+				//skip
+			}
+			else
+			{
+				return;
+			}
 		}
 	}
 }
