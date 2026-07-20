@@ -54,6 +54,7 @@ DynamicRobot::DynamicRobot(const std::string & path)
 	{
 		printf("Identified %s as root\n", root_->name.c_str());
 	}
+	assignJoints();
 }
 
 void DynamicRobot::assignRoot(void)
@@ -76,6 +77,20 @@ void DynamicRobot::assignRoot(void)
 			root_ = curlink;
 			return;
 		}
+	}
+}
+
+void DynamicRobot::assignJoints(void)
+{
+	for(int j = 0; j < joints_.size(); j++)
+	{
+		Joint * curjoint = joints_[j];
+		Link * parent = findLinkByName(links_, curjoint->parentLink->name);
+		Link * child = findLinkByName(links_, curjoint->childLink->name);
+		
+		printf("Joint %s connects %s to %s\n", curjoint->name.c_str(), parent->name.c_str(), child->name.c_str());
+		parent->joints.push_back(curjoint);
+		child->joints.push_back(curjoint);
 	}
 }
 

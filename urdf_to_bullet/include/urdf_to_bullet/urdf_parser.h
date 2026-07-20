@@ -20,5 +20,6 @@ Robot parseUrdfString(const std::string& xml);
 // parseJoint looks up parent/child by name in `links`, same as Robot::links().
 void parseLink(const tinyxml2::XMLElement* linkElem, Link* out);
 void parseJoint(const tinyxml2::XMLElement* jointElem, const std::vector<Link*>& links, Joint* out);
+Link* findLinkByName(const std::vector<Link*>& links, const std::string& name);
 
 } // namespace urdf

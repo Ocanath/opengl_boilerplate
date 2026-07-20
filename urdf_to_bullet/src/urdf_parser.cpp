@@ -96,6 +96,8 @@ void parseInertial(const XMLElement* linkElem, Inertial* out)
     }
 }
 
+} // namespace
+
 // URDF files are small (tens to low hundreds of links); a linear scan by
 // name is simpler than a lookup table and this only runs once at load time.
 Link* findLinkByName(const std::vector<Link*>& links, const std::string& name)
@@ -104,8 +106,6 @@ Link* findLinkByName(const std::vector<Link*>& links, const std::string& name)
         if (link->name == name) return link;
     return nullptr;
 }
-
-} // namespace
 
 void parseLink(const XMLElement* linkElem, Link* out)
 {

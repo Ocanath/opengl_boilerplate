@@ -23,6 +23,7 @@ class DynamicRobot
 		void addLink(const XMLElement * link);
 		void addJoint(const XMLElement * xml_joint);
 		void assignRoot(void);
+		void assignJoints(void);
 
 };
 
