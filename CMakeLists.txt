@@ -79,6 +79,7 @@ set(APP_SOURCES
     src/encoder_manager.cpp
     src/asset_library.cpp
     src/urdf_render.cpp
+    src/DynamicRobot.cpp
 )
 
 if(WIN32)

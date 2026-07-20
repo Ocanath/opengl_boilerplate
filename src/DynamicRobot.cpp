@@ -21,7 +21,8 @@ void DynamicRobot::addJoint(const XMLElement * xml_joint)
 	joints_.push_back(joint);
 }
 
-DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition)
+DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition, const std::string & meshBaseDir)
+	: meshBaseDir_(meshBaseDir)
 {
 	rootTransform_.setOrigin(spawnPosition);
 
@@ -294,6 +295,24 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 			world->addConstraint(constraint, /*disableCollisionsBetweenLinkedBodies=*/true);
 			buildResult_.constraints.push_back(constraint);
 		}
+	}
+
+	render_.emplace(buildResult_, meshBaseDir_);
+}
+
+void DynamicRobot::render(Shader & shader) const
+{
+	if(render_)
+	{
+		render_->drawVisual(shader);
+	}
+}
+
+void DynamicRobot::renderCollision(Shader & shader) const
+{
+	if(render_)
+	{
+		render_->drawCollision(shader);
 	}
 }
 

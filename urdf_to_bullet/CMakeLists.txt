@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(urdf_to_bullet STATIC
     src/urdf_parser.cpp
     src/urdf_to_bullet.cpp
-	src/DynamicRobot.cpp
 )
 
 target_include_directories(urdf_to_bullet PUBLIC
