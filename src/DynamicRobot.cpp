@@ -21,8 +21,9 @@ void DynamicRobot::addJoint(const XMLElement * xml_joint)
 	joints_.push_back(joint);
 }
 
-DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition, const std::string & meshBaseDir)
-	: meshBaseDir_(meshBaseDir)
+DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition,
+                           const std::string & meshBaseDir, double collisionDensity)
+	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity)
 {
 	rootTransform_.setOrigin(spawnPosition);
 
@@ -214,47 +215,115 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 		}
 
 		btCollisionShape * shape;
+		double mass = 0.0;
+		btVector3 localInertia(0, 0, 0);
+		btTransform principal = btTransform::getIdentity(); // entry-link frame -> true body-local origin
+
 		if(!hasCollision)
 		{
+			// No compound children to attach a mass to, so there's nothing
+			// for calculatePrincipalAxisTransform to compose: fall back to a
+			// plain sum of whatever <inertial> the members carry (no COM
+			// shift, no density — there's no collision volume for density to
+			// apply to). A member with <inertial> but no <collision> of its
+			// own always lands here, which is exactly why the warning below
+			// exists for the mixed case (this supernode DOES have collision
+			// geometry, just not on that particular member).
 			btEmptyShape * empty = new btEmptyShape();
 			buildResult_.shapes.push_back(empty);
 			shape = empty;
+
+			for(size_t m = 0; m < sn.members.size(); m++)
+			{
+				const Inertial & inertial = sn.members[m].first->inertial;
+				if(inertial.present)
+				{
+					mass += inertial.mass;
+					localInertia += btVector3((btScalar)inertial.ixx, (btScalar)inertial.iyy, (btScalar)inertial.izz);
+				}
+			}
 		}
 		else
 		{
 			btCompoundShape * compound = new btCompoundShape();
 			buildResult_.shapes.push_back(compound);
+
+			// One mass per compound child, same order as addChildShape
+			// below — calculatePrincipalAxisTransform() needs it to find the
+			// true mass-weighted COM/principal axes across every welded
+			// member, rather than assuming the entry link's frame is the
+			// body's local origin. Deliberately unconditional: an explicit
+			// <inertial> mass is honored, but its ixx/iyy/izz tensor is not —
+			// calculatePrincipalAxisTransform always re-derives each child's
+			// own inertia from its geometry assuming uniform density.
+			// Composing an explicit tensor by hand is a separate piece of
+			// work, not needed yet since nothing currently specifies one.
+			std::vector<btScalar> childMasses;
+
 			for(size_t m = 0; m < sn.members.size(); m++)
 			{
 				Link * member = sn.members[m].first;
 				const btTransform & memberFrame = sn.members[m].second;
+
+				if(member->inertial.present && member->collisions.empty())
+				{
+					printf("Warning: link %s has <inertial> mass %.6f but no <collision> geometry of its own; "
+					       "this mass has no compound child to attach to and is dropped from its supernode's "
+					       "center-of-mass/inertia\n", member->name.c_str(), member->inertial.mass);
+				}
+
+				double memberVolume = 0.0;
+				for(size_t c = 0; c < member->collisions.size(); c++)
+				{
+					memberVolume += geometryVolume(member->collisions[c].geometry);
+				}
+
 				for(size_t c = 0; c < member->collisions.size(); c++)
 				{
 					btCollisionShape * child = buildPrimitiveShape(member->collisions[c].geometry, buildResult_.shapes);
 					compound->addChildShape(memberFrame * toBtTransform(member->collisions[c].origin), child);
+
+					double primVolume = geometryVolume(member->collisions[c].geometry);
+					double primMass = 0.0;
+					if(member->inertial.present)
+					{
+						// Split this member's own mass across its own
+						// primitives by volume share; an even split only if
+						// that share can't be computed (degenerate/zero volume).
+						primMass = memberVolume > 0.0
+							? member->inertial.mass * (primVolume / memberVolume)
+							: member->inertial.mass / (double)member->collisions.size();
+					}
+					else if(collisionDensity_ > 0.0)
+					{
+						primMass = collisionDensity_ * primVolume;
+					}
+					childMasses.push_back((btScalar)primMass);
 				}
 			}
+
+			for(size_t c = 0; c < childMasses.size(); c++)
+			{
+				mass += childMasses[c];
+			}
+
+			compound->calculatePrincipalAxisTransform(childMasses.data(), principal, localInertia);
+			for(int c = 0; c < compound->getNumChildShapes(); c++)
+			{
+				compound->updateChildTransform(c, principal.inverse() * compound->getChildTransform(c), true);
+			}
+
 			shape = compound;
 		}
 
-		// No inertial data in the debug URDFs this is built against yet, so
-		// this is deliberately simple: sum whatever <inertial> the member
-		// links do carry, default to 0 (static) otherwise. Doesn't account
-		// for the merged body's true center of mass — fine while every mass
-		// is 0, worth revisiting once real inertials show up.
-		double mass = 0.0;
-		btVector3 localInertia(0, 0, 0);
-		for(size_t m = 0; m < sn.members.size(); m++)
-		{
-			const Inertial & inertial = sn.members[m].first->inertial;
-			if(inertial.present)
-			{
-				mass += inertial.mass;
-				localInertia += btVector3((btScalar)inertial.ixx, (btScalar)inertial.iyy, (btScalar)inertial.izz);
-			}
-		}
-
-		btDefaultMotionState * motionState = new btDefaultMotionState(sn.worldFrame);
+		// principal is the offset from the entry link's frame (sn.worldFrame)
+		// to the body's true local origin — identity when there's no
+		// collision geometry to compose from, otherwise the mass-weighted
+		// COM/principal-axis frame calculatePrincipalAxisTransform found.
+		// Every transform below that used to be "relative to the entry
+		// link" now has to be re-expressed relative to that true origin.
+		btTransform trueWorldFrame = sn.worldFrame * principal;
+		btDefaultMotionState * motionState = new btDefaultMotionState(trueWorldFrame);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo((btScalar)mass, motionState, shape, localInertia);
 		sn.body = new btRigidBody(rbInfo);
 		world->addRigidBody(sn.body);
@@ -272,7 +341,7 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 				vi.body = sn.body;
 				vi.geometry = member->visuals[v].geometry;
 				vi.material = member->visuals[v].material;
-				vi.localTransform = memberFrame * toBtTransform(member->visuals[v].origin);
+				vi.localTransform = principal.inverse() * memberFrame * toBtTransform(member->visuals[v].origin);
 				buildResult_.visuals.push_back(std::move(vi));
 			}
 
@@ -281,7 +350,7 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 				CollisionInstance ci;
 				ci.body = sn.body;
 				ci.geometry = member->collisions[c].geometry;
-				ci.localTransform = memberFrame * toBtTransform(member->collisions[c].origin);
+				ci.localTransform = principal.inverse() * memberFrame * toBtTransform(member->collisions[c].origin);
 				buildResult_.collisions.push_back(std::move(ci));
 			}
 		}
@@ -290,7 +359,7 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 		{
 			btRigidBody * parentBody = supernodes[sn.parentSupernodeIdx].body;
 			btTransform frameInA = parentBody->getWorldTransform().inverse() * sn.worldFrame;
-			btTransform frameInB = btTransform::getIdentity();
+			btTransform frameInB = principal.inverse();
 			btTypedConstraint * constraint = makeJointConstraint(*sn.parentBoundaryJoint, *parentBody, *sn.body, frameInA, frameInB);
 			world->addConstraint(constraint, /*disableCollisionsBetweenLinkedBodies=*/true);
 			buildResult_.constraints.push_back(constraint);

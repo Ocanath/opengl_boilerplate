@@ -39,6 +39,14 @@ btTypedConstraint* makeJointConstraint(const Joint& joint,
                                         btRigidBody& bodyA, btRigidBody& bodyB,
                                         const btTransform& frameInA, const btTransform& frameInB);
 
+// The geometric volume URDF describes for a single <collision> primitive,
+// independent of whatever Bullet shape it became — for the same
+// density-based mass fallback buildRobot()'s collisionDensity parameter
+// uses (mass = density * volume when a link has no <inertial>). Exposed so
+// other build orchestrations can sum it over however they group links (e.g.
+// DynamicRobot sums it per merged weld-group rather than per individual link).
+double geometryVolume(const Geometry& geom);
+
 // A <visual> element, re-based from the link frame onto its rigid body's
 // actual origin (the link's center of mass) so a renderer can place it with
 // a single composition: body->getWorldTransform() * localTransform.

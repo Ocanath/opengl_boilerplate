@@ -109,8 +109,8 @@ btCollisionShape* buildLinkShape(const Link& link,
     return compound;
 }
 
-// For the collisionDensity fallback: the geometric volume URDF describes,
-// independent of whatever Bullet shape it became.
+} // namespace
+
 double geometryVolume(const Geometry& geom)
 {
     switch (geom.type) {
@@ -125,6 +125,8 @@ double geometryVolume(const Geometry& geom)
     }
     return 0.0;
 }
+
+namespace {
 
 double linkCollisionVolume(const Link& link)
 {
