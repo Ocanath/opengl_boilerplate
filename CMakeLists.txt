@@ -48,6 +48,11 @@ add_subdirectory(external/networked-encoder/api)
 
 # tinyxml2 (used by urdf_to_bullet)
 set(tinyxml2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+# Disable pkgconfig generation: file(GENERATE) without $<CONFIG> in the output
+# path fails on multi-config generators (Visual Studio) because it tries to
+# write the same tinyxml2.pc with different content for each configuration.
+# We don't need the .pc file when consuming tinyxml2 as a submodule.
+set(tinyxml2_INSTALL_PKGCONFIG OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/tinyxml2)
 
 # urdf_to_bullet: standalone URDF -> Bullet rigid body/constraint importer
