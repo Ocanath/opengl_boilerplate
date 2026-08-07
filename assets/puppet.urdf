@@ -4,12 +4,6 @@
     <!--body references and transformations -->
     <link name="upper-torso">
         <collision>
-            <origin xyz="0 0 23e-3" rpy="0 0 0" />
-            <geometry>
-                <sphere radius="32e-3" />
-            </geometry>
-        </collision>
-        <collision>
             <origin xyz="0 0 -10e-3" rpy="0 0 0" />
             <geometry>
                 <cylinder radius="27e-3" length="20e-3" />
@@ -22,6 +16,66 @@
             </geometry>
         </collision>
     </link>
+	
+	<link name = "head">
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="32e-3" />
+            </geometry>
+        </collision>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="32e-3" />
+            </geometry>
+        </visual>
+	</link>
+    <joint name="neck-virtual" type="fixed">
+        <parent link="upper-torso" />
+        <child link="head" />
+        <origin xyz="0 0 23e-3" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+	<link name = "eye-virtual-1">
+		<!-- virtual link -->
+	</link>
+		<link name = "eye-virtual-2">
+		<!-- virtual link -->
+	</link>
+	<joint name="eye-yaw" type="continuous">
+		<parent link = "head" />
+		<child link = "eye-virtual-1"/>
+		<origin xyz = "0 0 0" rpy = "0 0 0" />
+		<axis xyz = "0 0 1" />
+	</joint>
+	<joint name="eye-pitch" type="continuous">
+		<parent link = "eye-virtual-1" />
+		<child link = "eye-virtual-2"/>
+		<origin xyz = "0 0 0" rpy = "1.57079633 0 0" />
+		<axis xyz = "0 0 1" />
+	</joint>
+	<joint name="eye-stalk" type="fixed">
+		<parent link = "eye-virtual-2" />
+		<child link = "eye"/>
+		<origin xyz = "32e-3 0 0" rpy = "0 0 0" />
+		<axis xyz = "0 0 1" />
+	</joint>
+	<link name = "eye">
+		<collision>
+            <origin xyz="0 0 0" rpy="0 -1.57079633 0" />
+            <geometry>
+                <cylinder radius="10e-3" length="5e-3" />
+            </geometry>
+        </collision>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -1.57079633 0" />
+            <geometry>
+                <cylinder radius="10e-3" length="5e-3" />
+            </geometry>
+        </visual>
+	</link>
+
     <link name="upper-torso-waist-stator">
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
