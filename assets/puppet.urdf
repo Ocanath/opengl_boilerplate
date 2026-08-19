@@ -39,9 +39,19 @@
     </joint>
 	<link name = "eye-virtual-1">
 		<!-- virtual link -->
+		<collision>
+			<geometry>
+				<cylinder radius = "1e-3" length="1e-3"/>
+			</geometry>
+		</collision>
 	</link>
 		<link name = "eye-virtual-2">
 		<!-- virtual link -->
+		<collision>
+			<geometry>
+				<cylinder radius = "1e-3" length="1e-3"/>
+			</geometry>
+		</collision>
 	</link>
 	<joint name="eye-yaw" type="continuous">
 		<parent link = "head" />
@@ -174,7 +184,7 @@
     <joint name="uppertorso-bone-upperarmstator" type="fixed">
         <parent link="uppertorso-bone-armstator-left" />
         <child link="upper-torso-arm-stator-left" />
-        <origin xyz="0 40e-3 0" rpy="0 -1.57079633 0" />
+        <origin xyz="0 30e-3 0" rpy="1.57079633 0 0" />
     </joint>
     <link name="uppertorso-bone-armstator-right">
     </link>
@@ -186,7 +196,7 @@
     <joint name="uppertorso-bone-upperarmstator" type="fixed">
         <parent link="uppertorso-bone-armstator-right" />
         <child link="upper-torso-arm-stator-right" />
-        <origin xyz="0 -40e-3 0" rpy="0 -1.57079633 0" />
+        <origin xyz="0 -30e-3 0" rpy="-1.57079633 0 0" />
     </joint>
 
 
@@ -208,7 +218,7 @@
     <link name="link1-bone-left">   
         <!-- add properties - geometry, etc -->
         <collision>
-            <origin xyz="0 24e-3 0" rpy="0 0 0" />
+            <origin xyz="0 0 -5e-3" rpy="0 0 0" />
             <geometry>
             <sphere radius="5e-3" />
             </geometry>
@@ -236,7 +246,7 @@
     <joint name="link1-bone-to-stator-left" type="fixed">
         <parent link="link1-bone-left" />
         <child link="link1-stator-left" />
-        <origin xyz="0 37.5e-3 0" rpy="1.57079633 0 0" />
+        <origin xyz="0 0 -42.0e-3" rpy="0 -1.57079633 0" />
     </joint>
     <!-- rotational joint in link 1-->
     <joint name="q1-left" type="continuous">
@@ -264,7 +274,7 @@
     </link>
     <link name="link2-bone-left">  
         <collision>
-            <origin xyz="-23e-3 0 0" rpy="0 0 0" />
+            <origin xyz="0 -23e-3 0" rpy="0 0 0" />
             <geometry>
                 <sphere radius="5e-3" />
             </geometry>
@@ -292,7 +302,7 @@
     <joint name="link2-bone-to-stator-left" type="fixed">
         <parent link="link2-bone-left" />
         <child link="link2-stator-left" />
-        <origin xyz="-40e-3 0 0" rpy="0 1.57079633 0" />
+        <origin xyz="0 -40e-3 0" rpy="-1.57079633 1.57079633 0" />
     </joint>
     <!-- rotational joint q2 -->
     <joint name="q2-left" type="continuous">
@@ -347,7 +357,7 @@
     <joint name="link3-bone-to-stator-left" type="fixed">
         <parent link="link3-bone-left" />
         <child link="link3-stator-left" />
-        <origin xyz="0 -20e-3 -45e-3" rpy="0 1.57079633 3.14159265359" />
+        <origin xyz="20e-3 0 -45e-3" rpy="1.57079633 1.57079633 3.14159265359" />
     </joint>
     <!-- rotational joint q3 -->
     <joint name="q3-left" type="continuous">
@@ -502,10 +512,10 @@
             </geometry>
         </collision>
     </link>
-    <link name="link1-bone-right">   
+    <link name="link1-bone-right">
         <!-- add properties - geometry, etc -->
         <collision>
-            <origin xyz="0 -24e-3 0" rpy="0 0 0" />
+            <origin xyz="0 0 -5e-3" rpy="0 0 0" />
             <geometry>
             <sphere radius="5e-3" />
             </geometry>
@@ -533,7 +543,7 @@
     <joint name="link1-bone-to-stator-right" type="fixed">
         <parent link="link1-bone-right" />
         <child link="link1-stator-right" />
-        <origin xyz="0 -37.5e-3 0" rpy="-1.57079633 0 0" />
+        <origin xyz="0 0 -42.0e-3" rpy="0 -1.57079633 0" />
     </joint>
     <!-- rotational joint in link 1-->
     <joint name="q1-right" type="continuous">
@@ -561,7 +571,7 @@
     </link>
     <link name="link2-bone-right">  
         <collision>
-            <origin xyz="-23e-3 0 0" rpy="0 0 0" />
+            <origin xyz="0 23e-3 0" rpy="0 0 0" />
             <geometry>
                 <sphere radius="5e-3" />
             </geometry>
@@ -589,7 +599,7 @@
     <joint name="link2-bone-to-stator-right" type="fixed">
         <parent link="link2-bone-right" />
         <child link="link2-stator-right" />
-        <origin xyz="-40e-3 0 0" rpy="0 1.57079633 0" />
+        <origin xyz="0 40e-3 0" rpy="1.57079633 1.57079633 0" />
     </joint>
     <!-- rotational joint q2 -->
     <joint name="q2-right" type="continuous">
@@ -644,7 +654,7 @@
     <joint name="link3-bone-to-stator-right" type="fixed">
         <parent link="link3-bone-right" />
         <child link="link3-stator-right" />
-        <origin xyz="0 20e-3 -45e-3" rpy="0 1.57079633 3.14159265359" />
+        <origin xyz="20e-3 0 -45e-3" rpy="-1.57079633 1.57079633 3.14159265359" />
     </joint>
     <!-- rotational joint q3 -->
     <joint name="q3-right" type="continuous">

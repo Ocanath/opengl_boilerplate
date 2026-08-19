@@ -66,6 +66,18 @@ class DynamicRobot
 		// simulation's fixed timestep, same contract as
 		// btHingeConstraint::setMotorTarget().
 		void setJointTargetAngle(const std::string & jointName, double targetAngle, double dt, double maxImpulse);
+
+		// Same as the name-keyed overloads above, but by position in the
+		// URDF's own <joint> element order (Fixed joints excluded — they're
+		// welded away and never become their own constraint, so they have
+		// nothing to expose here). Meant for a hot per-frame control loop
+		// (e.g. one physical encoder driving one joint every tick): an
+		// index lookup is O(1) into a vector, where the name-keyed overloads
+		// do a linear string-compare scan every call.
+		size_t getJointCount() const;
+		const std::string & getJointName(size_t index) const;
+		void setJointVelocity(size_t index, double velocity, double maxImpulse);
+		void setJointTargetAngle(size_t index, double targetAngle, double dt, double maxImpulse);
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;
@@ -79,6 +91,8 @@ class DynamicRobot
 		bool scaled_ = false; // guards against re-applying scale_ if buildBulletRobot() is ever called twice
 		double jointDamping_ = 0.0;
 		std::optional<UrdfRender> render_;
+		std::vector<btTypedConstraint*> jointMotorsByIndex_; // URDF <joint> document order, Fixed joints excluded
+		std::vector<std::string> jointNamesByIndex_;         // parallel to jointMotorsByIndex_
 
 		void addLink(const XMLElement * link);
 		void addJoint(const XMLElement * xml_joint);

@@ -471,6 +471,23 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 		}
 	}
 
+	// Joint motors by index: URDF document order (joints_ preserves this,
+	// since addJoint() appends in <joint> element order), filtered to
+	// non-Fixed joints — a Fixed joint gets welded away and never becomes
+	// its own constraint, so it has nothing to expose by index.
+	jointMotorsByIndex_.clear();
+	jointNamesByIndex_.clear();
+	for(size_t i = 0; i < joints_.size(); i++)
+	{
+		Joint * joint = joints_[i];
+		if(joint->type == JointType::Fixed)
+		{
+			continue;
+		}
+		jointMotorsByIndex_.push_back(findConstraint(buildResult_, joint->name));
+		jointNamesByIndex_.push_back(joint->name);
+	}
+
 	render_.emplace(buildResult_, meshBaseDir_);
 }
 
@@ -490,9 +507,11 @@ void DynamicRobot::renderCollision(Shader & shader) const
 	}
 }
 
-static btHingeConstraint * findHingeJoint(const BuildResult & buildResult, const std::string & jointName, const char * caller)
+// Shared validate-and-cast step for both the name-keyed and index-keyed
+// control paths below: is this actually a hinge, and if not (or if it's
+// null), print a caller-specific warning instead of crashing.
+static btHingeConstraint * asHingeConstraint(btTypedConstraint * constraint, const std::string & jointName, const char * caller)
 {
-	btTypedConstraint * constraint = findConstraint(buildResult, jointName);
 	if(constraint == nullptr)
 	{
 		printf("%s: no joint named %s\n", caller, jointName.c_str());
@@ -504,6 +523,11 @@ static btHingeConstraint * findHingeJoint(const BuildResult & buildResult, const
 		return nullptr;
 	}
 	return static_cast<btHingeConstraint*>(constraint);
+}
+
+static btHingeConstraint * findHingeJoint(const BuildResult & buildResult, const std::string & jointName, const char * caller)
+{
+	return asHingeConstraint(findConstraint(buildResult, jointName), jointName, caller);
 }
 
 void DynamicRobot::setJointVelocity(const std::string & jointName, double velocity, double maxImpulse)
@@ -518,6 +542,51 @@ void DynamicRobot::setJointVelocity(const std::string & jointName, double veloci
 void DynamicRobot::setJointTargetAngle(const std::string & jointName, double targetAngle, double dt, double maxImpulse)
 {
 	btHingeConstraint * hinge = findHingeJoint(buildResult_, jointName, "setJointTargetAngle");
+	if(hinge != nullptr)
+	{
+		hinge->setMaxMotorImpulse((btScalar)maxImpulse);
+		hinge->setMotorTarget((btScalar)targetAngle, (btScalar)dt);
+	}
+}
+
+size_t DynamicRobot::getJointCount() const
+{
+	return jointMotorsByIndex_.size();
+}
+
+const std::string & DynamicRobot::getJointName(size_t index) const
+{
+	static const std::string kEmpty;
+	if(index >= jointNamesByIndex_.size())
+	{
+		printf("getJointName: index %zu out of range (%zu joints)\n", index, jointNamesByIndex_.size());
+		return kEmpty;
+	}
+	return jointNamesByIndex_[index];
+}
+
+void DynamicRobot::setJointVelocity(size_t index, double velocity, double maxImpulse)
+{
+	if(index >= jointMotorsByIndex_.size())
+	{
+		printf("setJointVelocity: index %zu out of range (%zu joints)\n", index, jointMotorsByIndex_.size());
+		return;
+	}
+	btHingeConstraint * hinge = asHingeConstraint(jointMotorsByIndex_[index], jointNamesByIndex_[index], "setJointVelocity");
+	if(hinge != nullptr)
+	{
+		hinge->enableAngularMotor(true, (btScalar)velocity, (btScalar)maxImpulse);
+	}
+}
+
+void DynamicRobot::setJointTargetAngle(size_t index, double targetAngle, double dt, double maxImpulse)
+{
+	if(index >= jointMotorsByIndex_.size())
+	{
+		printf("setJointTargetAngle: index %zu out of range (%zu joints)\n", index, jointMotorsByIndex_.size());
+		return;
+	}
+	btHingeConstraint * hinge = asHingeConstraint(jointMotorsByIndex_[index], jointNamesByIndex_[index], "setJointTargetAngle");
 	if(hinge != nullptr)
 	{
 		hinge->setMaxMotorImpulse((btScalar)maxImpulse);

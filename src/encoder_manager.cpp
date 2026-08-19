@@ -4,7 +4,7 @@
 
 EncoderManager::EncoderManager()
 {
-    thetas_.resize(2, 0.f);   // one slot per encoder
+    thetas_.resize(10, 0.f);   // one slot per encoder, addresses 0-9
     running_ = true;
     thread_  = std::thread(&EncoderManager::pollLoop, this);
 }
@@ -24,21 +24,17 @@ std::vector<float> EncoderManager::getThetas() const
 
 void EncoderManager::pollLoop()
 {
-    // TODO: set up Serial + Encoders here
 	Serial ser;
 	ser.autoconnect(921600);
 	std::vector<Encoder *> enc_arm;
-	Encoder e1(0, &ser);
-	Encoder e2(1, &ser);
-	enc_arm.push_back(&e1);
-	enc_arm.push_back(&e2);
-	
-    while (running_) 
+	for(int i = 0; i < 10; i++)
 	{
-        // TODO: read encoders, then:
-        // std::lock_guard<std::mutex> lk(mutex_);
-        // thetas_[i] = encoders[i]->theta;
-		for(int i = 0; i < enc_arm.size(); i++)
+		enc_arm.push_back(new Encoder((unsigned char)i, &ser));
+	}
+
+    while (running_)
+	{
+		for(int i = 0; i < (int)enc_arm.size(); i++)
 		{
 			int rc = enc_arm[i]->read_angle();
 			if(rc != DARTT_PROTOCOL_SUCCESS)
@@ -51,4 +47,9 @@ void EncoderManager::pollLoop()
 		// printf("[%f, %f]\n", enc_arm[0]->theta, enc_arm[1]->theta);
         // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+
+	for(int i = 0; i < (int)enc_arm.size(); i++)
+	{
+		delete enc_arm[i];
+	}
 }
