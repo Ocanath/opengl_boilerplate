@@ -61,11 +61,18 @@ class DynamicRobot
 		// smaller of the two limits how fast/strongly the joint can move.
 		void setJointVelocity(const std::string & jointName, double velocity, double maxImpulse);
 
-		// Convenience position control: drives toward targetAngle (radians)
-		// over the next `dt` seconds — call this every physics step with the
-		// simulation's fixed timestep, same contract as
-		// btHingeConstraint::setMotorTarget().
-		void setJointTargetAngle(const std::string & jointName, double targetAngle, double dt, double maxImpulse);
+		// Position control via a spring-damper (PD) law expressed directly in
+		// rad/s, not Bullet's own setMotorTarget()/dt convention — that
+		// convention implicitly derives a proportional gain of 1/dt, which
+		// silently goes wrong (and has no damping term at all) if dt isn't
+		// exactly the physics engine's own integration step. Safe to call at
+		// any rate (e.g. once per render frame) since it doesn't depend on dt:
+		//   desiredVel = kp * (targetAngle - currentAngle) - kd * currentVel
+		// kp: rad/s of commanded velocity per radian of angle error (stiffness).
+		// kd: damping — fraction of current angular velocity subtracted back
+		// out, resisting overshoot. maxImpulse bounds the motor same as
+		// setJointVelocity().
+		void setJointTargetAngle(const std::string & jointName, double targetAngle, double kp, double kd, double maxImpulse);
 
 		// Same as the name-keyed overloads above, but by position in the
 		// URDF's own <joint> element order (Fixed joints excluded — they're
@@ -77,7 +84,7 @@ class DynamicRobot
 		size_t getJointCount() const;
 		const std::string & getJointName(size_t index) const;
 		void setJointVelocity(size_t index, double velocity, double maxImpulse);
-		void setJointTargetAngle(size_t index, double targetAngle, double dt, double maxImpulse);
+		void setJointTargetAngle(size_t index, double targetAngle, double kp, double kd, double maxImpulse);
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;

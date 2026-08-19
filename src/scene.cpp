@@ -47,6 +47,12 @@ Scene::Scene()
 	puppet_->buildBulletRobot(dynamicsWorld_);
 	// puppet_->traverse_tree_dfs();
 
+	printf("Puppet joint index map:\n");
+	for(size_t i = 0; i < puppet_->getJointCount(); i++)
+	{
+		printf("  [%zu] %s\n", i, puppet_->getJointName(i).c_str());
+	}
+
 	// DynamicRobot puppet("assets/puppet.urdf");
 	// puppet.traverse_tree_dfs();
 
@@ -327,6 +333,35 @@ void Scene::setArmThetas(const std::vector<float>& thetas)
     std::lock_guard<std::mutex> lk(physicsMutex_);
     if (arm_)
         arm_->setThetas(thetas);
+}
+
+// Encoder address -> puppet joint index (see the "Puppet joint index map"
+// printed at startup for what each index actually is). Physical encoder
+// addresses are assigned per hardware unit and don't inherently correspond
+// to any particular joint — this table is the only place that maps one onto
+// the other. Identity to start (0-0, 1-1, ...) as a basic wiring sanity
+// check; update by hand once the real physical mapping is known.
+static const std::pair<int, int> kEncoderToJointIndex[] = {
+    {0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4},
+    {5, 5}, {6, 6}, {7, 7}, {8, 8}, {9, 9},
+};
+
+void Scene::setPuppetThetas(const std::vector<float>& thetas)
+{
+    std::lock_guard<std::mutex> lk(physicsMutex_);
+    if (!puppet_) return;
+
+    // Starting guesses — soft spring, well damped, conservative on purpose
+    // since overshoot/oscillation is exactly what we're fighting. Tune once
+    // it's moving.
+    constexpr float kKp         = 5.f;
+    constexpr float kKd         = 0.5f;
+    constexpr float kMaxImpulse = 50.f;
+
+    for (const auto& [encoderAddr, jointIndex] : kEncoderToJointIndex) {
+        if (encoderAddr < 0 || (size_t)encoderAddr >= thetas.size()) continue;
+        puppet_->setJointTargetAngle((size_t)jointIndex, thetas[encoderAddr], kKp, kKd, kMaxImpulse);
+    }
 }
 
 void Scene::addModel(const std::string& path)

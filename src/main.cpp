@@ -242,8 +242,9 @@ int main()
         prevTime       = nowTime;
         dt = (dt > 0.1f) ? 0.1f : dt; // clamp large deltas
 
-        armThetas = enc_manager.getThetas();
-        scene.setArmThetas(armThetas);
+        armThetas = enc_manager.getThetas(); // all 10 raw encoder thetas, addresses 0-9
+        scene.setArmThetas(armThetas);       // hinge arm only reads indices 0-1
+        scene.setPuppetThetas(armThetas);
 
         // Update
         scene.update(dt, g_window);

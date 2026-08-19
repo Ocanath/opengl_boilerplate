@@ -530,6 +530,32 @@ static btHingeConstraint * findHingeJoint(const BuildResult & buildResult, const
 	return asHingeConstraint(findConstraint(buildResult, jointName), jointName, caller);
 }
 
+// Relative angular velocity of the hinge's two bodies, projected onto the
+// hinge axis (in world space) — the "currentVel" term for the spring-damper
+// law below. The hinge axis in world space is frame A's local Z (see
+// hingeFrame() in urdf_to_bullet.cpp: the constraint frame is built so its
+// local Z is the joint's own <axis>), rotated by body A's current orientation.
+static double hingeAngularVelocity(const btHingeConstraint & hinge)
+{
+	btVector3 axisWorld = hinge.getRigidBodyA().getWorldTransform().getBasis() * hinge.getAFrame().getBasis().getColumn(2);
+	btVector3 relAngVel = hinge.getRigidBodyB().getAngularVelocity() - hinge.getRigidBodyA().getAngularVelocity();
+	return relAngVel.dot(axisWorld);
+}
+
+// Spring-damper position control, shared by the name-keyed and index-keyed
+// overloads: desiredVel = kp*(targetAngle - currentAngle) - kd*currentVel,
+// fed into the same velocity motor setJointVelocity() uses. Expressed in
+// rad/s rather than Bullet's own setMotorTarget()/dt convention (which
+// implicitly derives a proportional gain of 1/dt and has no damping term at
+// all) — this is dt-independent, so it's safe to call at any rate.
+static void driveHingeToAngle(btHingeConstraint & hinge, double targetAngle, double kp, double kd, double maxImpulse)
+{
+	double angleError = targetAngle - hinge.getHingeAngle();
+	double currentVel = hingeAngularVelocity(hinge);
+	double desiredVel = kp * angleError - kd * currentVel;
+	hinge.enableAngularMotor(true, (btScalar)desiredVel, (btScalar)maxImpulse);
+}
+
 void DynamicRobot::setJointVelocity(const std::string & jointName, double velocity, double maxImpulse)
 {
 	btHingeConstraint * hinge = findHingeJoint(buildResult_, jointName, "setJointVelocity");
@@ -539,13 +565,12 @@ void DynamicRobot::setJointVelocity(const std::string & jointName, double veloci
 	}
 }
 
-void DynamicRobot::setJointTargetAngle(const std::string & jointName, double targetAngle, double dt, double maxImpulse)
+void DynamicRobot::setJointTargetAngle(const std::string & jointName, double targetAngle, double kp, double kd, double maxImpulse)
 {
 	btHingeConstraint * hinge = findHingeJoint(buildResult_, jointName, "setJointTargetAngle");
 	if(hinge != nullptr)
 	{
-		hinge->setMaxMotorImpulse((btScalar)maxImpulse);
-		hinge->setMotorTarget((btScalar)targetAngle, (btScalar)dt);
+		driveHingeToAngle(*hinge, targetAngle, kp, kd, maxImpulse);
 	}
 }
 
@@ -579,7 +604,7 @@ void DynamicRobot::setJointVelocity(size_t index, double velocity, double maxImp
 	}
 }
 
-void DynamicRobot::setJointTargetAngle(size_t index, double targetAngle, double dt, double maxImpulse)
+void DynamicRobot::setJointTargetAngle(size_t index, double targetAngle, double kp, double kd, double maxImpulse)
 {
 	if(index >= jointMotorsByIndex_.size())
 	{
@@ -589,8 +614,7 @@ void DynamicRobot::setJointTargetAngle(size_t index, double targetAngle, double 
 	btHingeConstraint * hinge = asHingeConstraint(jointMotorsByIndex_[index], jointNamesByIndex_[index], "setJointTargetAngle");
 	if(hinge != nullptr)
 	{
-		hinge->setMaxMotorImpulse((btScalar)maxImpulse);
-		hinge->setMotorTarget((btScalar)targetAngle, (btScalar)dt);
+		driveHingeToAngle(*hinge, targetAngle, kp, kd, maxImpulse);
 	}
 }
 

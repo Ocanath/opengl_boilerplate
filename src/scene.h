@@ -76,6 +76,12 @@ public:
     // Feed encoder (or simulated) thetas each frame; thread-safe
     void setArmThetas(const std::vector<float>& thetas);
 
+    // Feed raw encoder thetas (indexed by encoder address) to the puppet's
+    // joints via a spring-damper position control law, remapped through
+    // kEncoderToJointIndex (see scene.cpp). dt-independent — safe to call
+    // once per render frame. Thread-safe.
+    void setPuppetThetas(const std::vector<float>& thetas);
+
     // Puppet URDF — visual/collision draw toggles, bound directly to ImGui checkboxes.
     bool& showPuppetVisual()    { return showPuppetVisual_; }
     bool& showPuppetCollision() { return showPuppetCollision_; }
