@@ -14,8 +14,7 @@
 #include "collision_box.h"
 #include "ability.h"
 #include "dynamic_arm.h"
-#include "urdf_render.h"
-#include "DynamicRobot.h"
+#include "PuppetRobot.h"
 
 struct ImDrawList;
 
@@ -76,16 +75,6 @@ public:
     // Feed encoder (or simulated) thetas each frame; thread-safe
     void setArmThetas(const std::vector<float>& thetas);
 
-    // Feed raw encoder thetas (indexed by encoder address) to the puppet's
-    // joints via a spring-damper position control law, remapped through
-    // kEncoderToJointIndex (see scene.cpp). dt-independent — safe to call
-    // once per render frame. Thread-safe.
-    void setPuppetThetas(const std::vector<float>& thetas);
-
-    // Puppet URDF — visual/collision draw toggles, bound directly to ImGui checkboxes.
-    bool& showPuppetVisual()    { return showPuppetVisual_; }
-    bool& showPuppetCollision() { return showPuppetCollision_; }
-
     std::unique_ptr<Model>  cubeModel_;   // shared unit cube for all box meshes
 	btDiscreteDynamicsWorld*             dynamicsWorld_ = nullptr;
 
@@ -129,21 +118,7 @@ private:
 
     void buildChamber(glm::vec3 dims);
     void buildPillars();
-    // calculateCollisionInertia/collisionDensity: see buildRobot() in
-    // urdf_to_bullet.h. Defaults (false, 0.0) match puppet.urdf having no
-    // <inertial> anywhere — every link stays static/mass-0.
-    void buildPuppet(const std::string& urdfPath,
-                      bool calculateCollisionInertia = false,
-                      double collisionDensity = 0.0);
-
-    // Puppet URDF
-    urdf::BuildResult          puppetBuild_;
-    std::optional<UrdfRender>  puppetRender_;
-    bool showPuppetVisual_    = false;
-    bool showPuppetCollision_ = true;
-
-    // Debug puppet URDF — collision-only rendering for now
-    std::optional<DynamicRobot> puppet_;
+    std::optional<PuppetRobot> puppet_;
 
     // ── Deferred rendering ────────────────────────────────────────────────
     // G-buffer

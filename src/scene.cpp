@@ -3,7 +3,7 @@
 #include "ability_gravity.h"
 #include "ability_push.h"
 #include "ability_move.h"
-#include "urdf_to_bullet/urdf_parser.h"
+#include "PuppetRobot.h"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -16,7 +16,6 @@
 #include <cmath>
 #include <stdexcept>
 #include <thread>
-#include "DynamicRobot.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -47,19 +46,7 @@ Scene::Scene()
 
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
-    // buildPuppet("assets/puppet.urdf", true, 1000.0);
-	puppet_.emplace("assets/puppet.urdf", btVector3(0, -50, 5), "", 10.f, 20.0, 0.3, 60);
-	puppet_->buildBulletRobot(dynamicsWorld_);
-	// puppet_->traverse_tree_dfs();
-
-	printf("Puppet joint index map:\n");
-	for(size_t i = 0; i < puppet_->getJointCount(); i++)
-	{
-		printf("  [%zu] %s\n", i, puppet_->getJointName(i).c_str());
-	}
-
-	// DynamicRobot puppet("assets/puppet.urdf");
-	// puppet.traverse_tree_dfs();
+    puppet_.emplace(dynamicsWorld_);
 
     // Create deferred rendering shaders
     gShader_        = std::make_unique<Shader>("shaders/gbuffer.vert",  "shaders/gbuffer.frag");
@@ -99,9 +86,7 @@ Scene::~Scene()
         physicsThread_.join();
 
     // Remove collision bodies from world (in reverse dependency order)
-    puppetRender_.reset();
-    destroyBuildResult(puppetBuild_, dynamicsWorld_);
-    puppet_.reset();        // ~DynamicRobot() tears its own buildResult_ out of dynamicsWorld_
+    puppet_.reset();        // ~PuppetRobot → ~DynamicRobot removes bodies from world
     abilities_.clear();       // BeamAbility's firedBeams_ removed from physics world
     arm_.reset();
     lightBoxes_.clear();
@@ -302,27 +287,6 @@ void Scene::buildPillars()
     }
 }
 
-void Scene::buildPuppet(const std::string& urdfPath, bool calculateCollisionInertia, double collisionDensity)
-{
-    try {
-        urdf::Robot robot = urdf::parseUrdfFile(urdfPath);
-
-        btTransform rootTransform;
-        rootTransform.setIdentity();
-        // Clear of the block piles around the origin (addPile calls in main.cpp)
-        // and below the floating-pillar grid (z in [30,60)) — adjust freely.
-        rootTransform.setOrigin({0.f, -50.f, 2.f});
-
-        puppetBuild_ = urdf::buildRobot(robot, dynamicsWorld_, rootTransform,
-                                         calculateCollisionInertia, collisionDensity);
-        // Mesh filenames in the URDF are written relative to external/ (e.g.
-        // "networked-encoder/CAD/stl/..."), matching that submodule's layout.
-        puppetRender_.emplace(puppetBuild_, "external/");
-    } catch (const std::exception& e) {
-        fprintf(stderr, "Scene: could not load puppet URDF \"%s\": %s\n", urdfPath.c_str(), e.what());
-    }
-}
-
 // ── Public interface ──────────────────────────────────────────────────────────
 
 void Scene::initArm(const std::vector<DynamicArm::LinkDef>& defs,
@@ -338,35 +302,6 @@ void Scene::setArmThetas(const std::vector<float>& thetas)
     std::lock_guard<std::mutex> lk(physicsMutex_);
     if (arm_)
         arm_->setThetas(thetas);
-}
-
-// Encoder address -> puppet joint index (see the "Puppet joint index map"
-// printed at startup for what each index actually is). Physical encoder
-// addresses are assigned per hardware unit and don't inherently correspond
-// to any particular joint — this table is the only place that maps one onto
-// the other. Identity to start (0-0, 1-1, ...) as a basic wiring sanity
-// check; update by hand once the real physical mapping is known.
-static const std::pair<int, int> kEncoderToJointIndex[] = {
-    {0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4},
-    {5, 5}, {6, 6}, {7, 7}, {8, 8}, {9, 9},
-};
-
-void Scene::setPuppetThetas(const std::vector<float>& thetas)
-{
-    std::lock_guard<std::mutex> lk(physicsMutex_);
-    if (!puppet_) return;
-
-    // Starting guesses — soft spring, well damped, conservative on purpose
-    // since overshoot/oscillation is exactly what we're fighting. Tune once
-    // it's moving.
-    constexpr float kKp         = 20.f;
-    constexpr float kKd         = 0.5f;
-    constexpr float kMaxImpulse = 3000.f;
-
-    for (const auto& [encoderAddr, jointIndex] : kEncoderToJointIndex) {
-        if (encoderAddr < 0 || (size_t)encoderAddr >= thetas.size()) continue;
-        puppet_->setJointTargetAngle((size_t)jointIndex, thetas[encoderAddr], kKp, kKd, kMaxImpulse);
-    }
 }
 
 void Scene::addModel(const std::string& path)
@@ -544,6 +479,12 @@ void Scene::update(float dt, GLFWwindow* window)
         // Snapshot camera state for ability system
         camPos_   = camera_->getPosition();
         camFront_ = camera_->getFront();
+
+        if (puppet_) {
+            puppet_->update();
+            if (arm_)
+                arm_->setThetas(puppet_->getThetas());
+        }
     }
 
     // Update all abilities; only active one gets qHeld=true.
@@ -638,14 +579,6 @@ void Scene::draw(int width, int height)
     if (arm_)
         arm_->draw(*gShader_);
 
-    // Puppet URDF — visual and (debug-colored) collision geometry, both lit
-    // like the rest of the scene
-    if (puppetRender_ && showPuppetVisual_)
-        puppetRender_->drawVisual(*gShader_);
-    if (puppetRender_ && showPuppetCollision_)
-        puppetRender_->drawCollision(*gShader_);
-
-    // Debug puppet URDF — collision-only for now
     if (puppet_)
         puppet_->renderCollision(*gShader_);
 

@@ -81,7 +81,7 @@ set(APP_SOURCES
     src/ability_push.cpp
     src/ability_move.cpp
     src/dynamic_arm.cpp
-    src/encoder_manager.cpp
+    src/PuppetRobot.cpp
     src/asset_library.cpp
     src/urdf_render.cpp
     src/DynamicRobot.cpp

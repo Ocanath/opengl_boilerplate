@@ -8,7 +8,6 @@
 #include <btBulletDynamicsCommon.h>
 #include "light.h"
 #include "dynamic_arm.h"
-#include "encoder_manager.h"
 #include "asset_library.h"
 
 #include <cstdio>
@@ -220,12 +219,6 @@ int main()
         5.f                  // maxImpulse — lower = weaker joints
     );
 
-    EncoderManager enc_manager;
-
-    // Arm theta state — driven by ImGui sliders or encoder manager
-    // Joint 2 has no encoder; its motor is disabled so it flops freely.
-    std::vector<float> armThetas = {0.f, 0.f};
-
     // Load the default unit cube as the test mesh
     // scene.addModel("assets/cube.obj");
 
@@ -241,10 +234,6 @@ int main()
         float  dt      = (float)(nowTime - prevTime);
         prevTime       = nowTime;
         dt = (dt > 0.1f) ? 0.1f : dt; // clamp large deltas
-
-        armThetas = enc_manager.getThetas(); // all 10 raw encoder thetas, addresses 0-9
-        scene.setArmThetas(armThetas);       // hinge arm only reads indices 0-1
-        scene.setPuppetThetas(armThetas);
 
         // Update
         scene.update(dt, g_window);
@@ -336,19 +325,6 @@ int main()
         }
 
         scene.drawActiveAbilityOverlay();
-
-        ImGui::Separator();
-        if (ImGui::CollapsingHeader("Kinematic Arm")) {
-            ImGui::SliderFloat("Joint 0 (rad)", &armThetas[0], -(float)M_PI, (float)M_PI);
-            ImGui::SliderFloat("Joint 1 (rad)", &armThetas[1], -(float)M_PI, (float)M_PI);
-            ImGui::Text("theta0=%.3f  theta1=%.3f  joint2=free", armThetas[0], armThetas[1]);
-        }
-
-        ImGui::Separator();
-        if (ImGui::CollapsingHeader("Puppet URDF")) {
-            ImGui::Checkbox("Visual",    &scene.showPuppetVisual());
-            ImGui::Checkbox("Collision", &scene.showPuppetCollision());
-        }
 
         ImGui::End();
 
