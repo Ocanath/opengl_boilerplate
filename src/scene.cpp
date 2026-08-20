@@ -31,6 +31,11 @@ Scene::Scene()
     dynamicsWorld_ = new btDiscreteDynamicsWorld(
         dispatcher_, broadphase_, solver_, collConfig_);
     dynamicsWorld_->setGravity({ 0.f, 0.f, -9.8f });
+    // Left at Bullet's default (10): the puppet's long serial chains need
+    // far more iterations to converge under strong PD motor targets, but
+    // that's applied per-constraint on the puppet's own joints instead (see
+    // DynamicRobot's solverIterations constructor param) so it doesn't tax
+    // every simultaneous collision elsewhere in the scene.
 
     try {
         cubeModel_ = std::make_unique<Model>("assets/cube.obj");
@@ -43,7 +48,7 @@ Scene::Scene()
     buildChamber(glm::vec3{125,125,100});
     buildPillars();
     // buildPuppet("assets/puppet.urdf", true, 1000.0);
-	puppet_.emplace("assets/puppet.urdf", btVector3(0, -50, 5), "", 100.f, 10.0, 0.3);
+	puppet_.emplace("assets/puppet.urdf", btVector3(0, -50, 5), "", 10.f, 20.0, 0.3, 60);
 	puppet_->buildBulletRobot(dynamicsWorld_);
 	// puppet_->traverse_tree_dfs();
 
@@ -354,9 +359,9 @@ void Scene::setPuppetThetas(const std::vector<float>& thetas)
     // Starting guesses — soft spring, well damped, conservative on purpose
     // since overshoot/oscillation is exactly what we're fighting. Tune once
     // it's moving.
-    constexpr float kKp         = 5.f;
+    constexpr float kKp         = 20.f;
     constexpr float kKd         = 0.5f;
-    constexpr float kMaxImpulse = 50.f;
+    constexpr float kMaxImpulse = 3000.f;
 
     for (const auto& [encoderAddr, jointIndex] : kEncoderToJointIndex) {
         if (encoderAddr < 0 || (size_t)encoderAddr >= thetas.size()) continue;

@@ -38,9 +38,19 @@ class DynamicRobot
 		// no built-in friction otherwise. setJointVelocity()/
 		// setJointTargetAngle() just reconfigure that same motor for
 		// deliberate control.
+		// solverIterations: -1 (default) leaves these joints at whatever the
+		// world's global solver iteration count is. A long serial chain of
+		// real joints (like this one) may need many more iterations than the
+		// rest of the scene to converge under strong PD motor targets —
+		// rather than raising the *world's* iteration count (which taxes
+		// every simultaneous collision everywhere), a positive value here is
+		// applied per-constraint via btTypedConstraint::
+		// setOverrideNumSolverIterations(), so only the island this robot is
+		// actually part of pays for it (Bullet's solver uses
+		// max(global, per-constraint override) per solved island).
 		DynamicRobot(const std::string & path, const btVector3 & spawnPosition = btVector3(0, 0, 0),
 		             const std::string & meshBaseDir = "", double collisionDensity = 0.0, double scale = 1.0,
-		             double jointDamping = 0.0);
+		             double jointDamping = 0.0, int solverIterations = -1);
 		~DynamicRobot();
 		void traverse_tree_dfs(void);	//test
 		void buildBulletRobot(btDiscreteDynamicsWorld * world);
@@ -97,6 +107,7 @@ class DynamicRobot
 		double scale_ = 1.0;
 		bool scaled_ = false; // guards against re-applying scale_ if buildBulletRobot() is ever called twice
 		double jointDamping_ = 0.0;
+		int solverIterations_ = -1;
 		std::optional<UrdfRender> render_;
 		std::vector<btTypedConstraint*> jointMotorsByIndex_; // URDF <joint> document order, Fixed joints excluded
 		std::vector<std::string> jointNamesByIndex_;         // parallel to jointMotorsByIndex_

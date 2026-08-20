@@ -23,8 +23,9 @@ void DynamicRobot::addJoint(const XMLElement * xml_joint)
 
 DynamicRobot::DynamicRobot(const std::string & path, const btVector3 & spawnPosition,
                            const std::string & meshBaseDir, double collisionDensity, double scale,
-                           double jointDamping)
-	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity), scale_(scale), jointDamping_(jointDamping)
+                           double jointDamping, int solverIterations)
+	: meshBaseDir_(meshBaseDir), collisionDensity_(collisionDensity), scale_(scale), jointDamping_(jointDamping),
+	  solverIterations_(solverIterations)
 {
 	rootTransform_.setOrigin(spawnPosition);
 
@@ -456,6 +457,10 @@ void DynamicRobot::buildBulletRobot(btDiscreteDynamicsWorld * world)
 			btTransform frameInB = principal.inverse();
 			btTypedConstraint * constraint = makeJointConstraint(*sn.parentBoundaryJoint, *parentBody, *sn.body, frameInA, frameInB);
 			world->addConstraint(constraint, /*disableCollisionsBetweenLinkedBodies=*/true);
+			// -1 (default) is a no-op here — Bullet only honors a positive
+			// override, otherwise falls back to the world's global iteration
+			// count. See the constructor's solverIterations doc comment.
+			constraint->setOverrideNumSolverIterations(solverIterations_);
 			buildResult_.constraints.push_back(constraint);
 			buildResult_.constraintsByJointName.push_back({sn.parentBoundaryJoint->name, constraint});
 
