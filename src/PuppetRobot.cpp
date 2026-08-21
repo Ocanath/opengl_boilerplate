@@ -1,5 +1,6 @@
 #include "PuppetRobot.h"
 #include "encoder.h"
+#include "tick.h"
 #include <cstdio>
 
 // Physical encoder address → URDF joint index. Identity to start as a
@@ -18,6 +19,7 @@ PuppetRobot::PuppetRobot(btDiscreteDynamicsWorld* world)
     : robot_("assets/puppet.urdf", btVector3(0, -50, 5), "", 10.f, 20.0, 0.3, 60)
 {
     robot_.buildBulletRobot(world);
+    robot_.disableDeactivation();
 
     printf("Puppet joint index map:\n");
     for (size_t i = 0; i < robot_.getJointCount(); i++)
@@ -68,13 +70,18 @@ void PuppetRobot::pollLoop()
     std::vector<Encoder*> encoders;
     for (int i = 0; i < 10; i++)
         encoders.push_back(new Encoder((unsigned char)i, &ser));
-
-    while (running_) {
-        for (int i = 0; i < (int)encoders.size(); i++) {
+	init_tick();
+    while (running_) 
+	{
+        for (int i = 0; i < (int)encoders.size(); i++) 
+		{
             int rc = encoders[i]->read_angle();
             (void)rc; // failures silently skipped; hardware is polled continuously
             std::lock_guard<std::mutex> lk(encoderMutex_);
             thetas_[i] = -encoders[i]->theta;
+
+			// double time = (float)(get_tick_ms())/1000.0;
+			// thetas_[i] = -.1*sin(time + (double(i)));
         }
     }
 

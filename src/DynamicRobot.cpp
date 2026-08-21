@@ -579,6 +579,12 @@ void DynamicRobot::setJointTargetAngle(const std::string & jointName, double tar
 	}
 }
 
+void DynamicRobot::disableDeactivation()
+{
+	for (btRigidBody* b : buildResult_.bodies)
+		if (b) b->setActivationState(DISABLE_DEACTIVATION);
+}
+
 size_t DynamicRobot::getJointCount() const
 {
 	return jointMotorsByIndex_.size();

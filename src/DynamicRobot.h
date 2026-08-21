@@ -95,6 +95,10 @@ class DynamicRobot
 		const std::string & getJointName(size_t index) const;
 		void setJointVelocity(size_t index, double velocity, double maxImpulse);
 		void setJointTargetAngle(size_t index, double targetAngle, double kp, double kd, double maxImpulse);
+
+		// Call after buildBulletRobot(). Marks every body DISABLE_DEACTIVATION
+		// so Bullet's sleep system never suspends them.
+		void disableDeactivation();
 	private:
 		std::vector<Link*> links_;
 		std::vector<Joint*> joints_;

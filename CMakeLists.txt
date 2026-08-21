@@ -82,6 +82,7 @@ set(APP_SOURCES
     src/ability_move.cpp
     src/dynamic_arm.cpp
     src/PuppetRobot.cpp
+    src/tick.cpp
     src/asset_library.cpp
     src/urdf_render.cpp
     src/DynamicRobot.cpp
