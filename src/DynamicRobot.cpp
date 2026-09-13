@@ -547,6 +547,39 @@ static double hingeAngularVelocity(const btHingeConstraint & hinge)
 	return relAngVel.dot(axisWorld);
 }
 
+
+#define ONE_BY_TWO_PI 			(1.0/(M_PI*2))
+#define TWO_PI              	(M_PI*2.0)
+
+/*
+	fast 2pi mod. needed for sin and cos FAST for angle limiting
+ */
+float fmod_2pi_l(float in)
+{
+	uint8_t aneg = 0;
+	float in_eval = in;
+	if(in < 0)
+	{
+		aneg = 1;
+		in_eval = -in;
+	}
+	float fv = (float)((int)(in_eval*ONE_BY_TWO_PI));
+	if(aneg == 1)
+		fv = (-fv)-1;
+	return in-TWO_PI*fv;
+}
+
+
+/*
+	General purpose 2pi wrap. Ensures -pi to pi
+ */
+float wrap_2pi_l(float v)
+{
+	return fmod_2pi_l(v+M_PI)-M_PI;
+}
+
+
+
 // Spring-damper position control, shared by the name-keyed and index-keyed
 // overloads: desiredVel = kp*(targetAngle - currentAngle) - kd*currentVel,
 // fed into the same velocity motor setJointVelocity() uses. Expressed in
@@ -555,7 +588,7 @@ static double hingeAngularVelocity(const btHingeConstraint & hinge)
 // all) — this is dt-independent, so it's safe to call at any rate.
 static void driveHingeToAngle(btHingeConstraint & hinge, double targetAngle, double kp, double kd, double maxImpulse)
 {
-	double angleError = targetAngle - hinge.getHingeAngle();
+	double angleError = wrap_2pi_l(targetAngle - hinge.getHingeAngle());
 	double currentVel = hingeAngularVelocity(hinge);
 	double desiredVel = kp * angleError - kd * currentVel;
 	hinge.enableAngularMotor(true, (btScalar)desiredVel, (btScalar)maxImpulse);
