@@ -4,6 +4,10 @@
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionShapes/btEmptyShape.h>
 
+#define ONE_BY_TWO_PI 			(1.0/(M_PI*2))
+#define TWO_PI              	(M_PI*2.0)
+
+
 void DynamicRobot::addLink(const XMLElement * xml_link)
 {
 	Link * link = new Link;
@@ -548,8 +552,6 @@ static double hingeAngularVelocity(const btHingeConstraint & hinge)
 }
 
 
-#define ONE_BY_TWO_PI 			(1.0/(M_PI*2))
-#define TWO_PI              	(M_PI*2.0)
 
 /*
 	fast 2pi mod. needed for sin and cos FAST for angle limiting
